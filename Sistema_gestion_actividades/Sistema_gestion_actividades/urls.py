@@ -24,4 +24,8 @@ from Sistema_gestion_actividades import settings
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('companies/', include('companies.urls')),
+    path('task/', include('task.urls')),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+
+

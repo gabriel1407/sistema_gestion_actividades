@@ -14,6 +14,8 @@ from jsonfield import JSONField
 
 class Company(models.Model):
     name = models.CharField(max_length=120, null=False, blank=False)
+    is_enabled = models.BooleanField(default=True)
+    users = models.ManyToManyField(User)
     created = models.DateTimeField(default=timezone.now, editable=False)
     modified = models.DateTimeField(default=timezone.now, editable=False)
 
