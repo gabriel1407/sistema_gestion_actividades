@@ -7,10 +7,11 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from django.utils.timezone import localtime
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from jsonfield import JSONField
 # Create your models here.
 
+User = get_user_model()
 
 class Company(models.Model):
     name = models.CharField(max_length=120, null=False, blank=False)
@@ -40,7 +41,6 @@ class Department(models.Model):
 class Roles(models.Model):
     name = models.CharField(max_length=120, null=False, blank=False)
     company = models.ForeignKey(Company,on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.PROTECT)
     created = models.DateTimeField(default=timezone.now, editable=False)
     modified = models.DateTimeField(default=timezone.now, editable=False)
 
