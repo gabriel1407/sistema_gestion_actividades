@@ -1,7 +1,10 @@
 from django.conf import settings
 from rest_framework import serializers
+from django.contrib.auth import get_user_model
 from companies.models import Company, Department, Roles
-from django.contrib.auth.models import User
+#from django.contrib.auth.models import User
+
+User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
     #companies = CompanySerializer(many=True, read_only=True)
@@ -42,6 +45,11 @@ class DepartmentListSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'created', 'modified',)
 
 class UserRoleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Roles
+        fields = ('__all__')
+
+class UserRoleListSerializer(serializers.ModelSerializer):
     company = CompanyListSerializer(many=False, read_only=True)
     class Meta:
         model = Roles
@@ -58,18 +66,23 @@ class UserListSerializer(serializers.ModelSerializer):
 class UserPasswordChangeSerializer(serializers.Serializer):
     password = serializers.CharField(max_length=16, required=True)
     
-class UserCompanySerializer(serializers.Serializer):
-    company = serializers.IntegerField(required=True)
+class UserUpdateSerializer(serializers.ModelSerializer):
+    #rol_asignado = RolesUserSerializer(many=True, read_only=True)
+    class Meta:
+        model = User
+        fields = ('__all__')
+        #read_only_fields = ('id', 'username')
+        
+class UserCreateSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
 
-    def validate(self, attrs):
+    class Meta:
+        model = User
+        fields = ('__all__')
+        #ields = ('__all__')
 
-        if attrs['company'] is not None:
-            company_id = attrs['company']
-            try:
-                company = Company.objects.get(id=company_id)
-            except Company.DoesNotExist:
-                raise serializers.ValidationError("Company specify not exists")
-        else:
-            raise serializers.ValidationError("Company not specify")
-
-        return attrs
+    def create(self, validated_data):
+        user = super(UserCreateSerializer, self).create(validated_data=validated_data)
+        user.set_password(validated_data['password'])
+        user.save()
+        return user

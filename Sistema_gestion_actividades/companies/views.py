@@ -5,7 +5,6 @@ import requests
 from django.http import JsonResponse
 from django.conf import settings
 from django.shortcuts import render, redirect
-from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model, authenticate, login
 from django.contrib.auth.hashers import make_password
 from django.core.exceptions import ObjectDoesNotExist
@@ -24,11 +23,13 @@ from rest_framework.parsers import JSONParser, FormParser
 from rest_framework.response import Response
 from rest_framework.serializers import Serializer
 from rest_framework.views import APIView
-from companies.serializers import UserSerializer, CompanySerializer, CompanyListSerializer, DepartmentListSerializer, DepartmentSerializer
-from companies.models import Company, Department
+from django.contrib.auth.models import User
+from companies.serializers import UserSerializer, CompanySerializer, CompanyListSerializer, DepartmentListSerializer, DepartmentSerializer, UserListSerializer, \
+    UserCreateSerializer, UserListSerializer, UserRoleSerializer, UserPasswordChangeSerializer, UserRoleListSerializer
+from companies.models import Company, Department, Roles
 
 # Create your views here.
-
+User = get_user_model()
 
 class LoginViewSet(GenericAPIView):
     serializer_class = UserSerializer
@@ -38,11 +39,11 @@ class LoginViewSet(GenericAPIView):
     def post(self, request, *args, **kwargs):
 
         try:
-            user = User.objects.filter(username=str(request.data.get('username')), password = request.data.get('password'))
+            user = User.objects.filter(username=str(request.data.get('username')))
             
             
             if user is not None:
-                return Response({'access': (True), 'data': UserSerializer(instance=user, many=True).data}, status=status.HTTP_200_OK)
+                return Response({'access': (True), 'data': UserListSerializer(instance=user, many=True).data}, status=status.HTTP_200_OK)
             #return Response({ 'messages': (False)}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'messages': str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -115,14 +116,17 @@ class DepartmentViewSet(ModelViewSet):
     
 
 
-class UserViewSet(viewsets.ModelViewSet):
+class UserViewSet(APIView):
     #permission_classes = (AllowAny,)
     queryset = get_user_model().objects.all()
     serializer_class = UserListSerializer
     filter_backends = (DjangoFilterBackend)
-    ordering_fields = ('username', 'email')
-    filter_fields = ('username', 'email')
-
+    
+    def get(self, request, *args, **kwargs):
+        my_data = get_user_model().objects.all()
+        serializer = UserListSerializer(my_data, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
     @action(methods=['get'], detail=True, )
     def check_username(self, request, pk=None):
 
@@ -149,61 +153,22 @@ class UserViewSet(viewsets.ModelViewSet):
 
         return Response({'message': 'Email exists'}, status=status.HTTP_400_BAD_REQUEST)
 
-
-    @action(methods=['post'], detail=True)
-    def set_password(self, request, pk=None):
-        user = self.get_object()
-        serializer = UserPasswordChangeSerializer(data=request.data)
-
-        if serializer.is_valid():
-            user.password = make_password(serializer.validated_data.get('password'))
-            user.save(update_fields=['password'])
-            return Response({'message': 'Password changed'}, status=status.HTTP_200_OK)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
-
-
-    @action(methods=['post'], detail=True)
-    def add_company(self, request, pk=None):
-
-        user = self.get_object()
-
-        serializer = UserCompanySerializer(data=request.data)
-
+    def post(self, request):
+        serializer = UserCreateSerializer(data=request.data)
         if serializer.is_valid():
-            if settings.APP_STAFF_CIA_VALIDATION and not user.is_superuser and not user.is_staff and user.companies.all().count() > 0:
-                return Response({'error': {'message': 'This user is added to a company', 'code': 9800}},
-                                status=status.HTTP_417_EXPECTATION_FAILED)
-
-            company_id = serializer.data.get('company')
-            company = Company.objects.get(id=company_id)
-            user.companies.add(company)
-            return Response({'message': 'Company added'}, status=status.HTTP_200_OK)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    @action(methods=['post'], detail=True)
-    def remover_company(self, request, pk=None):
-
-        user = self.get_object()
-
-        serializer = UserCompanySerializer(data=request.data)
-
+            serializer.validated_data['password'] = make_password(serializer.validated_data.get('password'))
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def put(self, request, pk):
+        my_data = get_user_model().objects.get(pk=pk)
+        serializer = UserListSerializer(my_data, data=request.data)
         if serializer.is_valid():
-            company_id = serializer.data.get('company')
-
-            if user.companies.filter(id=company_id).exists():
-                company = Company.objects.get(id=company_id)
-                user.companies.remove(company)
-                return Response({'message': 'Company removed'}, status=status.HTTP_200_OK)
-            else:
-                return Response({'message': 'User is not associated with that company.'},
-                                status=status.HTTP_400_BAD_REQUEST)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
-
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def create(self, request, *args, **kwargs):
         
@@ -222,13 +187,12 @@ class UserViewSet(viewsets.ModelViewSet):
 
         instance = self.get_object()
 
-        user_serializer = UserUpdateSerializer(
-            instance=instance, data=request.data, partial=True)
+        user_serializer = UserListSerializer(instance=instance, data=request.data, partial=True)
         
         if user_serializer.is_valid(raise_exception=True):
             #user_serializer.validated_data['password'] = make_password(user_serializer.validated_data.get('password'))
             user_serializer.save()
-            return Response(UserDetailsSerializer(instance=user_serializer.instance).data, status=status.HTTP_200_OK)
+            return Response(UserListSerializer(instance=user_serializer.instance).data, status=status.HTTP_200_OK)
         else:
             return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -236,10 +200,37 @@ class UserViewSet(viewsets.ModelViewSet):
         user = self.kwargs.get('pk')
         user.save()
         return Response({'User deleted', user.username}, status=status.HTTP_200_OK)
+ 
+
+
+class ChangePasswordViewSet(APIView):
+    def put(self, request, *args, **kwargs):
+        user = self.get_object()
+        serializer = UserPasswordChangeSerializer(data=request.data)
+
+        if serializer.is_valid():
+            user.password = make_password(serializer.validated_data.get('password'))
+            user.save(update_fields=['password'])
+            return Response({'message': 'Password changed', "User": user}, status=status.HTTP_200_OK)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ChangePasswordViewSet(APIView):
+    def put(self, request, pk):
+        user = get_user_model().objects.get(pk=pk)
+        serializer = UserPasswordChangeSerializer(data=request.data)
+
+        if serializer.is_valid():
+            user.password = make_password(serializer.validated_data.get('password'))
+            user.save(update_fields=['password'])
+            return Response({'message': 'Password changed', "User": user.username}, status=status.HTTP_200_OK)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+ 
     
 class UserRolViewSet(ModelViewSet):
     #permission_classes = (IsAppAuthenticated, IsAppStaff, IsAuthenticated, IsCompanyPermission)
-    serializer_class = UserRoleSerializer
+    serializer_class = UserRoleListSerializer
     queryset = Roles.objects.all()
     filter_backends = (DjangoFilterBackend,)
     ordering_fields = ('name',)
@@ -251,17 +242,17 @@ class UserRolViewSet(ModelViewSet):
         if serializer.is_valid():
             serializer.save()
 
-            return Response(UserRoleSerializer(instance=serializer.instance).data, status=status.HTTP_200_OK)
+            return Response(UserRoleListSerializer(instance=serializer.instance).data, status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def update(self, request, *args, **kwargs):
         modulo_instance = self.get_object()
 
-        serializer = UserRoleSerializer(instance=modulo_instance, data=request.data, partial=True)
+        serializer = UserRoleListSerializer(instance=modulo_instance, data=request.data, partial=True)
 
         if serializer.is_valid():
             serializer.save()
-            return Response(UserRoleSerializer(instance=serializer.instance).data, status=status.HTTP_200_OK)
+            return Response(UserRoleListSerializer(instance=serializer.instance).data, status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
