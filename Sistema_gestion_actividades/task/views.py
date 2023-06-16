@@ -23,7 +23,7 @@ from rest_framework.parsers import JSONParser, FormParser
 from rest_framework.response import Response
 from rest_framework.serializers import Serializer
 from rest_framework.views import APIView
-from task.models import Task
+from task.models import Task, TaskHistory
 from task.serializers import TaskListSerializer, TaskSerializer
 from redmail import EmailSender
 from django.template import loader
@@ -39,16 +39,16 @@ class TaskViewSet(ModelViewSet):
     filter_fields = ('is_enabled',)
 
 
-    def send_email(self, request, id, *args, **kwargs):
+    def send_email(self, *args, **kwargs):
         try:
-            user = User.objects.get(id=id)
-            task_day = Task.objects.filter(id = id)
+            user = User.objects.get(id=1)
+            task_day = Task.objects.filter(id = 2)
             if user is not None:
-                image = Image.open('/home/OptimusVIA/.optimusvia/media/Logodirectoconelbdv.png')
+                image = Image.open('/Sistema_gestion_actividades/task/templates/actividades-de-trabajo-en-equipo.png')
                 new_image = image.resize((300, 99))
 
                 html_msg = loader.render_to_string(
-                    '/home/OptimusVIA/project/optimusVIA/accounts/templates/sendemail.html',
+                    '/Sistema_gestion_actividades/task/templates/sendemail.html',
                     {
                         "Usuario": " ".join(list(map(lambda x: x.capitalize(), user.fullname.split(" ")))),
                         'fecha de inicio': str(task_day.start_day),
@@ -66,18 +66,37 @@ class TaskViewSet(ModelViewSet):
 
         if serialize.is_valid():
             serialize.save()
+            self.send_email()
             return Response(TaskListSerializer(instance=serialize.instance).data, status=status.HTTP_200_OK)
         else:
             return Response(serialize.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def update(self, request, *args, **kwargs):
-        company = self.get_object()
-        serialize = TaskSerializer(company, data=request.data, partial=True)
+        
+        task_update = self.get_object()
+        serializer = TaskListSerializer(task_update, data=request.data, partial=True)
 
-        if serialize.is_valid():
-            serialize.save()
-
-            return Response(TaskListSerializer(instance=serialize.instance).data, status=status.HTTP_200_OK)
+        if serializer.is_valid():
+            task_finish = serializer.validated_data.get('is_finished')
+            if task_finish == True:
+                serializer.save()
+                taks_history = TaskHistory()
+                taks_history.id = serializer.get_fields('id')
+                taks_history.name = serializer.validated_data.get('name')
+                taks_history.description = serializer.validated_data.get('description')
+                taks_history.is_finished = serializer.validated_data.get('is_finished')
+                #taks_history.user = serializer.validated_data.get('user')
+                taks_history.departament_id = serializer['departament']
+                taks_history.start_day = serializer.validated_data.get('start_day')
+                taks_history.end_day = serializer.validated_data.get('end_day')
+                taks_history.save()
+                return Response(TaskListSerializer(instance=serializer.instance).data, status=status.HTTP_200_OK)
+                
+            else:
+                serializer.save()
+                return Response(TaskListSerializer(instance=serializer.instance).data, status=status.HTTP_200_OK)
+        
         else:
-            return Response(serialize.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
 

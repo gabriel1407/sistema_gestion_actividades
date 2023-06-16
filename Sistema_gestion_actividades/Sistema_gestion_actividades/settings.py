@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'django_crontab',
     'django_filters',
     'corsheaders',
     'task',
@@ -166,6 +167,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+CRONJOBS = [
+    #('*/5 * * * *', 'myapp.cron.my_scheduled_job')
+]
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/

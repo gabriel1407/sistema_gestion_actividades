@@ -13,8 +13,11 @@ from jsonfield import JSONField
 # Create your models here.
 class Task(models.Model):
     name = models.TextField(blank=True, null=False)
+    description = models.TextField(blank=True, null=True)
     is_enabled = models.BooleanField(default=True)
     is_finished = models.BooleanField(default=False)
+    is_pending = models.BooleanField(default=True)
+    is_started = models.BooleanField(default=True)
     user = models.ManyToManyField(User)
     departament = models.ForeignKey('companies.Department', null=False, on_delete=models.PROTECT)
     start_day = models.DateField(null=False, blank=False)
@@ -28,10 +31,11 @@ class Task(models.Model):
 
 class TaskHistory(models.Model):
     name = models.TextField(blank=True, null=False)
+    description = models.TextField(blank=True, null=True)
     is_enabled = models.BooleanField(default=True)
     is_finished = models.BooleanField(default=False)
-    is_pending = models.BooleanField(default=False)
-    is_started = models.BooleanField(default=False)
+    is_pending = models.BooleanField(default=True)
+    is_started = models.BooleanField(default=True)
     user = models.ManyToManyField(User)
     departament = models.ForeignKey('companies.Department', null=False, on_delete=models.PROTECT)
     start_day = models.DateField(null=False, blank=False)
