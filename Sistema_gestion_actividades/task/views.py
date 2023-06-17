@@ -18,13 +18,14 @@ from rest_framework import viewsets
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import action, api_view
 from rest_framework.generics import GenericAPIView
-from rest_framework.viewsets import ModelViewSet
+from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from rest_framework.parsers import JSONParser, FormParser
 from rest_framework.response import Response
 from rest_framework.serializers import Serializer
 from rest_framework.views import APIView
 from task.models import Task, TaskHistory
-from task.serializers import TaskListSerializer, TaskSerializer
+from task.serializers import TaskListSerializer, TaskSerializer, TaskHistoryListSerializer
+from task.filters import CreatedBetweenFilter
 from redmail import EmailSender
 from django.template import loader
 # Create your views here.
@@ -37,12 +38,12 @@ class TaskViewSet(ModelViewSet):
     serializer_class = TaskListSerializer
     filter_backends = (DjangoFilterBackend,)
     filter_fields = ('is_enabled',)
-
+    
 
     def send_email(self, *args, **kwargs):
         try:
             user = User.objects.get(id=1)
-            task_day = Task.objects.filter(id = 2)
+            task_day = Task.objects.get(id = 2)
             if user is not None:
                 image = Image.open('/Sistema_gestion_actividades/task/templates/actividades-de-trabajo-en-equipo.png')
                 new_image = image.resize((300, 99))
@@ -59,7 +60,7 @@ class TaskViewSet(ModelViewSet):
                 email = EmailSender(host=settings.EMAIL_HOST, port=settings.EMAIL_PORT,username=settings.EMAIL_HOST_USER,password=settings.EMAIL_HOST_PASSWORD)
                 email.send(sender=settings.EMAIL_HOST_USER,receivers=[user.email],subject="Tarea Asignada",html=html_msg, body_images={ "my_image": new_image})
         except Exception as e:
-            return None
+            return Response({'messages': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
     def create(self, request, *args, **kwargs):
         serialize = TaskSerializer(data=request.data)
@@ -72,31 +73,40 @@ class TaskViewSet(ModelViewSet):
             return Response(serialize.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def update(self, request, *args, **kwargs):
-        
-        task_update = self.get_object()
-        serializer = TaskListSerializer(task_update, data=request.data, partial=True)
+        try:
+            task_update = self.get_object()
+            serializer = TaskListSerializer(task_update, data=request.data, partial=True)
 
-        if serializer.is_valid():
-            task_finish = serializer.validated_data.get('is_finished')
-            if task_finish == True:
-                serializer.save()
-                taks_history = TaskHistory()
-                taks_history.id = serializer.get_fields('id')
-                taks_history.name = serializer.validated_data.get('name')
-                taks_history.description = serializer.validated_data.get('description')
-                taks_history.is_finished = serializer.validated_data.get('is_finished')
-                #taks_history.user = serializer.validated_data.get('user')
-                taks_history.departament_id = serializer['departament']
-                taks_history.start_day = serializer.validated_data.get('start_day')
-                taks_history.end_day = serializer.validated_data.get('end_day')
-                taks_history.save()
-                return Response(TaskListSerializer(instance=serializer.instance).data, status=status.HTTP_200_OK)
-                
-            else:
-                serializer.save()
-                return Response(TaskListSerializer(instance=serializer.instance).data, status=status.HTTP_200_OK)
+
+            if serializer.is_valid():
+                task_finish = serializer.validated_data.get('is_finished')
+                if task_finish == True:
+                    serializer.save()
+                    user_t = TaskListSerializer(instance=serializer.instance, partial = True).data
+                    taks_history = TaskHistory()
+                    #print("user", user_t[task_update.user])
+                    taks_history.task = task_update
+                    taks_history.name = task_update.name
+                    taks_history.description = task_update.description
+                    taks_history.is_finished = task_update.is_finished
+                    taks_history.user = task_update.user
+                    taks_history.departament = task_update.departament
+                    taks_history.start_day = task_update.start_day
+                    taks_history.end_day = task_update.end_day
+                    taks_history.save()
+                    return Response(TaskListSerializer(instance=serializer.instance).data, status=status.HTTP_200_OK)
+                    
+                else:
+                    serializer.save()
+                    return Response(TaskListSerializer(instance=serializer.instance).data, status=status.HTTP_200_OK)
         
-        else:
+        except Exception as e:
+            return Response({'messages': str(e)}, status=status.HTTP_400_BAD_REQUEST)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
 
+class ReportTaskFinished(ReadOnlyModelViewSet):
+    queryset = TaskHistory.objects.all()
+    serializer_class = TaskHistoryListSerializer
+    filter_backends = (DjangoFilterBackend, CreatedBetweenFilter)
+    filter_fields = ('is_enabled',)

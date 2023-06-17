@@ -31,6 +31,7 @@ class Task(models.Model):
 
 class TaskHistory(models.Model):
     name = models.TextField(blank=True, null=False)
+    task = models.ForeignKey(Task, null=True, on_delete=models.PROTECT)
     description = models.TextField(blank=True, null=True)
     is_enabled = models.BooleanField(default=True)
     is_finished = models.BooleanField(default=False)
@@ -46,3 +47,4 @@ class TaskHistory(models.Model):
     class Meta:
         db_table = 'tasks_task_history_t'
         app_label = 'task'
+        
