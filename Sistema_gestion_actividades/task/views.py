@@ -40,25 +40,25 @@ class TaskViewSet(ModelViewSet):
     filter_fields = ('is_enabled',)
     
 
-    def send_email(self, *args, **kwargs):
+    def send_email(self,request ,*args, **kwargs):
         try:
-            user = User.objects.get(id=1)
-            task_day = Task.objects.get(id = 2)
+            user = User.objects.filter(id__in = request.data.get("user"))
+            task_day = Task.objects.filter(start_day = request.data.get("start_day"), end_day = request.data.get("end_day")).first()
             if user is not None:
-                image = Image.open('/Sistema_gestion_actividades/task/templates/actividades-de-trabajo-en-equipo.png')
+                image = Image.open('C:/Users/gabri/OneDrive/Documentos/Repositorios-github/sistema_gestion/Sistema_gestion_actividades/task/templates/actividades-de-trabajo-en-equipo.png')
                 new_image = image.resize((300, 99))
 
-                html_msg = loader.render_to_string(
-                    '/Sistema_gestion_actividades/task/templates/sendemail.html',
+                html_msg = loader.render_to_string('C:/Users/gabri/OneDrive/Documentos/Repositorios-github/sistema_gestion/Sistema_gestion_actividades/task/templates/sendemail.html',
                     {
-                        "Usuario": " ".join(list(map(lambda x: x.capitalize(), user.fullname.split(" ")))),
-                        'fecha de inicio': str(task_day.start_day),
-                        'fecha de entrega': str(task_day.end_day),
+                        "Usuario": " ".join(list(map(lambda x: x.capitalize(), user.username.split(" ")))),
+                        'fecha_inicio': str(task_day.start_day),
+                        'fecha_entrega': str(task_day.end_day),
                     }
                 )
                 html_msg = html_msg.replace('%% my_image %%','{{ my_image }}')
                 email = EmailSender(host=settings.EMAIL_HOST, port=settings.EMAIL_PORT,username=settings.EMAIL_HOST_USER,password=settings.EMAIL_HOST_PASSWORD)
                 email.send(sender=settings.EMAIL_HOST_USER,receivers=[user.email],subject="Tarea Asignada",html=html_msg, body_images={ "my_image": new_image})
+                return Response({'access': (True)}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'messages': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
@@ -67,8 +67,10 @@ class TaskViewSet(ModelViewSet):
 
         if serialize.is_valid():
             serialize.save()
-            self.send_email()
-            return Response(TaskListSerializer(instance=serialize.instance).data, status=status.HTTP_200_OK)
+            #task_t = TaskListSerializer(instance=serialize.instance).data
+            #self.send_email(request)
+            #return Response(TaskListSerializer(instance=serialize.instance).data, status=status.HTTP_201_CREATED)
+            return self.send_email(request)
         else:
             return Response(serialize.errors, status=status.HTTP_400_BAD_REQUEST)
 

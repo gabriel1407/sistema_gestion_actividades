@@ -20,15 +20,9 @@ class TaskListSerializer(serializers.ModelSerializer):
 
 class TaskHistoryListSerializer(serializers.ModelSerializer):
     #company = DepartmentListSerializer(many=False, read_only=True)
-    user = serializers.DictField()
+    #user = UserListSerializer(many=False, read_only=True)
     class Meta:
         model = TaskHistory
         fields = ('__all__')
         read_only_fields = ('id', 'created', 'modified',)
 
-class TaskHistoryUserListSerializer(serializers.ModelSerializer):
-    user = serializers.ListField()
-    class Meta:
-        model = Task
-        fields = ('user')
-        read_only_fields = ('id', 'created', 'modified',)
