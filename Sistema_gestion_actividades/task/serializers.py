@@ -2,7 +2,7 @@ from django.conf import settings
 from rest_framework import serializers
 from task.models import Task, TaskHistory
 from companies.models import Company, Department
-from companies.serializers import DepartmentListSerializer
+from companies.serializers import DepartmentListSerializer, UserListSerializer
 from django.contrib.auth.models import User
 
 class TaskSerializer(serializers.ModelSerializer):
@@ -20,7 +20,7 @@ class TaskListSerializer(serializers.ModelSerializer):
 
 class TaskHistoryListSerializer(serializers.ModelSerializer):
     #company = DepartmentListSerializer(many=False, read_only=True)
-    #user = UserListSerializer(many=False, read_only=True)
+    user = UserListSerializer(many=True, read_only=True)
     class Meta:
         model = TaskHistory
         fields = ('__all__')
