@@ -9,7 +9,7 @@ router.register(r'task', TaskViewSet)
 router.register(r'report_task_finished', ReportTaskFinished)
 
 urlpatterns = [
-    #re_path(r'^login/$', LoginViewSet, name='login'),
+    #re_path(r'^task/<int:pk>/', TaskViewSet, name='login'),
     #re_path(r'^login/', LoginViewSet.as_view(), name='login'),
 
 ]

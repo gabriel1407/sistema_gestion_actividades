@@ -90,7 +90,7 @@ class TaskViewSet(ModelViewSet):
         else:
             return Response(serialize.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def update(self, request, *args, **kwargs):
+    def update(self, request, pk):
         try:
             task_update = self.get_object()
             serializer = TaskListSerializer(task_update, data=request.data, partial=True)
@@ -100,14 +100,18 @@ class TaskViewSet(ModelViewSet):
                 task_finish = serializer.validated_data.get('is_finished')
                 if task_finish == True:
                     serializer.save()
-                    user_t = TaskListSerializer(instance=serializer.instance, partial = True).data
+                    
+                    #user_t = TaskListSerializer(instance=serializer.instance, partial = True).data
                     taks_history = TaskHistory()
+                    
+                    #user = serializer.validated_data.get('user')
+                    #print(user)
                     #print("user", user_t[task_update.user])
                     taks_history.task = task_update
                     taks_history.name = task_update.name
                     taks_history.description = task_update.description
                     taks_history.is_finished = task_update.is_finished
-                    taks_history.user = task_update.user.add(User.objects.get(id=2))
+                    #taks_history.user = task_update.user.set([user])
                     taks_history.departament = task_update.departament
                     taks_history.start_day = task_update.start_day
                     taks_history.end_day = task_update.end_day
