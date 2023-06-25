@@ -1,4 +1,5 @@
 import datetime
+from datetime import datetime
 
 import requests
 
@@ -82,6 +83,19 @@ class TaskViewSet(ModelViewSet):
         serialize = TaskSerializer(data=request.data)
 
         if serialize.is_valid():
+            start_day = serialize.validated_data['start_day']
+            end_day = serialize.validated_data['end_day']
+            
+            start_day_actual = datetime.date(datetime.now())
+            print(start_day_actual)
+            #replace_data = start_day_actual.replace(microsecond=0)
+            if start_day <= start_day_actual:
+                return Response({'Messages': 'No puedes crear una tarea con una fecha del dia de ayer'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            elif end_day <= start_day:
+                return Response({'Messages': 'La fecha de entrega tiene que ser mayor o igual al dia que se asigno la fecha'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            
             serialize.save()
             task_t = TaskListSerializer(instance=serialize.instance).data
             #self.send_email(request)
