@@ -117,15 +117,15 @@ class TaskViewSet(ModelViewSet):
                     
                     #user_t = TaskListSerializer(instance=serializer.instance, partial = True).data
                     taks_history = TaskHistory()
-                    
+                    user_t = Task.objects.filter(user__id__in = request.data.get('user'))
+                    print('user_t, ', user_t)
                     #user = serializer.validated_data.get('user')
-                    #print(user)
                     #print("user", user_t[task_update.user])
                     taks_history.task = task_update
                     taks_history.name = task_update.name
                     taks_history.description = task_update.description
                     taks_history.is_finished = task_update.is_finished
-                    #taks_history.user = task_update.user.set([user])
+                    taks_history.user = task_update.user.set(user_t)
                     taks_history.departament = task_update.departament
                     taks_history.start_day = task_update.start_day
                     taks_history.end_day = task_update.end_day
