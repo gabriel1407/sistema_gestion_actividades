@@ -42,40 +42,40 @@ class TaskViewSet(ModelViewSet):
     filter_fields = ('is_enabled',)
     
 
-    def send_email(self,request , id, user, *args, **kwargs):
+    def send_email(self, request, id, *args, **kwargs):
         try:
-            
-                
-            user = User.objects.filter(id__in = user).first()
-            
-            #user2 = User.objects.filter(id__in = user).order_by("-id").first()
-            #user = UserListSerializer(User.objects.filter(id__in = user), many=True).data
-            task_day = Task.objects.filter(id = id).first()
-            
-            if user is not None:
-                image = Image.open('C:/Users/gabri/OneDrive/Documentos/Repositorios-github/sistema_gestion/Sistema_gestion_actividades/task/templates/actividades-de-trabajo-en-equipo.png')
-                new_image = image.resize((300, 99))
-                print("users: ", user.username)
-                #print("users: ", user2.username)
-                
-                html_msg = loader.render_to_string('C:/Users/gabri/OneDrive/Documentos/Repositorios-github/sistema_gestion/Sistema_gestion_actividades/task/templates/sendemail.html',
-                    {
+            users = User.objects.filter(id__in=request.data.get("user"))
+            task_day = Task.objects.filter(id=id).first()
+
+            for user in users:
+                print("Usuario: ", user.email)
+                if user is not None:
+                    image = Image.open('C:/Users/gabri/OneDrive/Documentos/Repositorios-github/sistema_gestion/Sistema_gestion_actividades/task/templates/actividades-de-trabajo-en-equipo.png')
+                    new_image = image.resize((300, 99))
+                    html_msg = loader.render_to_string('C:/Users/gabri/OneDrive/Documentos/Repositorios-github/sistema_gestion/Sistema_gestion_actividades/task/templates/sendemail.html', {
                         "Usuario": " ".join(list(map(lambda x: x.capitalize(), user.username.split(" ")))),
-                        #"Usuario2": " ".join(list(map(lambda x: x.capitalize(), user2.username.split(" ")))),
                         "tarea": str(task_day.description),
                         'fecha_inicio': str(task_day.start_day),
                         'fecha_entrega': str(task_day.end_day),
-                    }
-                )
-                html_msg = html_msg.replace('%% my_image %%','{{ my_image }}')
-                email = EmailSender(host=settings.EMAIL_HOST, port=settings.EMAIL_PORT,username=settings.EMAIL_HOST_USER,password=settings.EMAIL_HOST_PASSWORD)
-                email.send(sender=settings.EMAIL_HOST_USER,receivers=[user.email, user.email],subject="Tarea Asignada",html=html_msg, body_images={ "my_image": new_image})
-                return Response({'access': (True), 'User': user.username}, status=status.HTTP_200_OK)
-    
-            else:
-                return Response({'Error': "el campo user no puede estar nulo"}, status=status.HTTP_400_BAD_REQUEST)
-                
-                    
+                    })
+                    html_msg = html_msg.replace('%% my_image %%', '{{ my_image }}')
+                    email = EmailSender(
+                        host=settings.EMAIL_HOST,
+                        port=settings.EMAIL_PORT,
+                        username=settings.EMAIL_HOST_USER,
+                        password=settings.EMAIL_HOST_PASSWORD
+                    )
+                    email.send(
+                        sender=settings.EMAIL_HOST_USER,
+                        receivers=[user.email],
+                        subject="Tarea Asignada",
+                        html=html_msg,
+                        body_images={"my_image": new_image}
+                    )
+                    print("Email enviado a: ", user.email)
+            
+            return Response({'access': (True), 'User': user.username}, status=status.HTTP_200_OK)
+        
         except Exception as e:
             return Response({'messages': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
@@ -104,42 +104,39 @@ class TaskViewSet(ModelViewSet):
         else:
             return Response(serialize.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def update(self, request, pk):
+    def update(self, request, pk=None):
         try:
             task_update = self.get_object()
             serializer = TaskListSerializer(task_update, data=request.data, partial=True)
 
-
-            if serializer.is_valid():
+            if serializer.is_valid(raise_exception=True):
                 task_finish = serializer.validated_data.get('is_finished')
-                if task_finish == True:
+                if task_finish:
                     serializer.save()
-                    
-                    #user_t = TaskListSerializer(instance=serializer.instance, partial = True).data
-                    taks_history = TaskHistory()
-                    user_t = Task.objects.filter(user__id__in = request.data.get('user'))
-                    print('user_t, ', user_t)
-                    #user = serializer.validated_data.get('user')
-                    #print("user", user_t[task_update.user])
-                    taks_history.task = task_update
-                    taks_history.name = task_update.name
-                    taks_history.description = task_update.description
-                    taks_history.is_finished = task_update.is_finished
-                    taks_history.user = task_update.user.set(user_t)
-                    taks_history.departament = task_update.departament
-                    taks_history.start_day = task_update.start_day
-                    taks_history.end_day = task_update.end_day
-                    taks_history.save()
+
+                    user_ids = request.data.get('user', [])
+                    users = User.objects.filter(is_active=True, id__in=user_ids)
+
+                    for user in users:
+                        history = TaskHistory(
+                            task=task_update,
+                            name=task_update.name,
+                            description=task_update.description,
+                            is_finished=task_update.is_finished,
+                            departament=task_update.departament,
+                            start_day=task_update.start_day,
+                            end_day=task_update.end_day,
+                        )
+                        history.save()
+                        history.user.set([user.id])
+
                     return Response(TaskListSerializer(instance=serializer.instance).data, status=status.HTTP_200_OK)
-                    
                 else:
                     serializer.save()
                     return Response(TaskListSerializer(instance=serializer.instance).data, status=status.HTTP_200_OK)
-        
+
         except Exception as e:
             return Response({'messages': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
 
 class ReportTaskFinished(ReadOnlyModelViewSet):
     queryset = TaskHistory.objects.all()
