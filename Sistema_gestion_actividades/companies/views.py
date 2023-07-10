@@ -5,7 +5,8 @@ import requests
 from django.http import JsonResponse
 from django.conf import settings
 from django.shortcuts import render, redirect
-from django.contrib.auth import get_user_model, authenticate, login
+from django.contrib.auth import get_user_model, authenticate, login, logout
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.hashers import make_password
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse, Http404
@@ -16,6 +17,8 @@ from django.utils import timezone
 from rest_framework import status, serializers
 from rest_framework import viewsets
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_protect
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.decorators import action, api_view
 from rest_framework.generics import GenericAPIView
 from rest_framework.viewsets import ModelViewSet
@@ -23,6 +26,7 @@ from rest_framework.parsers import JSONParser, FormParser
 from rest_framework.response import Response
 from rest_framework.serializers import Serializer
 from rest_framework.views import APIView
+from rest_framework.authentication import TokenAuthentication
 from django.contrib.auth.models import User
 from companies.serializers import UserSerializer, CompanySerializer, CompanyListSerializer, DepartmentListSerializer, DepartmentSerializer, UserListSerializer, \
     UserCreateSerializer, UserListSerializer, UserRoleSerializer, UserPasswordChangeSerializer, UserRoleListSerializer
@@ -31,23 +35,41 @@ from companies.models import Company, Department, Roles
 # Create your views here.
 User = get_user_model()
 
-class LoginViewSet(GenericAPIView):
-    serializer_class = UserSerializer
-    queryset = get_user_model().objects.all()
+class LoginViewSet(APIView):
+    #permission_classes = [IsAuthenticatedOrReadOnly]
+    authentication_classes = ()
 
-    @csrf_exempt
+    #@csrf_protect
     def post(self, request, *args, **kwargs):
+        # Verificar si el usuario ya está autenticado
+        if request.user.is_authenticated:
+            return Response({'message': 'El usuario ya está autenticado'}, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            user = User.objects.filter(username=str(request.data.get('username')))
-            
-            
-            if user is not None:
-                return Response({'access': (True), 'data': UserListSerializer(instance=user, many=True).data}, status=status.HTTP_200_OK)
-            #return Response({ 'messages': (False)}, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({'messages': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        username = request.data.get('username')
+        password = request.data.get('password')
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return Response({'access': True, 'data': UserListSerializer(instance=user).data}, status=status.HTTP_200_OK)
+        else:
+            return Response({'message': 'Credenciales inválidas'}, status=status.HTTP_401_UNAUTHORIZED)
+class ValidateUserLoginViewSet(APIView):
+    
+    @login_required
+    def post(self, request, *args, **kwargs):
+        
+        user = request.user
+        if user.is_authenticated:
+            return JsonResponse({'logged_in': request.user})
+        else:
+            return JsonResponse({'logged_in': False})
 
+class LogoutView(APIView):
+    authentication_classes = [TokenAuthentication]
+
+    def post(self, request, *args, **kwargs):
+        logout(request)
+        return Response({'message': 'Cierre de sesión exitoso'}, status=status.HTTP_200_OK)
 
 class CompanyViewSet(ModelViewSet):
     #permission_classes = (IsAppAuthenticated, IsAppStaff, IsAuthenticated, IsSuperUser)

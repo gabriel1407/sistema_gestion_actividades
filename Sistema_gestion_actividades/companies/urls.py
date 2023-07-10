@@ -2,7 +2,7 @@ from django.urls import re_path
 from rest_framework.routers import DefaultRouter
 
 
-from companies.views import LoginViewSet, CompanyViewSet, DepartmentViewSet, UserViewSet, UserRolViewSet, ChangePasswordViewSet
+from companies.views import LoginViewSet, CompanyViewSet, DepartmentViewSet, UserViewSet, UserRolViewSet, ChangePasswordViewSet, LogoutView, ValidateUserLoginViewSet
 
 router = DefaultRouter()
 router.register(r'company', CompanyViewSet)
@@ -13,6 +13,8 @@ router.register(r'rol', UserRolViewSet)
 urlpatterns = [
     #re_path(r'^login/$', LoginViewSet, name='login'),
     re_path(r'^login/', LoginViewSet.as_view(), name='login'),
+    re_path(r'^validate_login/', ValidateUserLoginViewSet.as_view(), name='validate_login'),
+    re_path(r'^logout/', LogoutView.as_view(), name='logout'),
     re_path(r'^users/', UserViewSet.as_view(), name='users'),
     re_path(r'^change_password/(?P<pk>[0-9]+)/$', ChangePasswordViewSet.as_view(), name='change_password'),
     #re_path(r'^logout/$', LogoutView.as_view(), name='logout'),
