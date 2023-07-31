@@ -6,6 +6,7 @@ import requests
 from PIL import Image
 from django.http import JsonResponse
 from django.conf import settings
+from datetime import timedelta
 from django.shortcuts import render, redirect
 #from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model
@@ -27,9 +28,11 @@ from rest_framework.views import APIView
 from task.models import Task, TaskHistory
 from task.serializers import TaskListSerializer, TaskSerializer, TaskHistoryListSerializer
 from task.filters import CreatedBetweenFilter
+from companies.models import Company
 from companies.serializers import UserListSerializer
 from redmail import EmailSender
 from django.template import loader
+from users.models import UserCustomer
 # Create your views here.
 
 User = get_user_model()
@@ -44,7 +47,7 @@ class TaskViewSet(ModelViewSet):
 
     def send_email(self, request, id, *args, **kwargs):
         try:
-            users = User.objects.filter(id__in=request.data.get("user"))
+            users = UserCustomer.objects.filter(id__in=request.data.get("user"))
             task_day = Task.objects.filter(id=id).first()
 
             for user in users:
@@ -143,3 +146,43 @@ class ReportTaskFinished(ReadOnlyModelViewSet):
     serializer_class = TaskHistoryListSerializer
     filter_backends = (DjangoFilterBackend, CreatedBetweenFilter)
     filter_fields = ('is_enabled',)
+    
+    
+class DashboardUserViewSet(APIView):
+    
+    def get_queryset(self):
+        company_id = self.request.query_params.get('company')
+        return Company.objects.filter(company_id=company_id)
+    
+    def get(self, request, pk=None, format=None):
+        now = datetime.now()
+        companies = Company.objects.filter(id = self.request.query_params.get('company'), is_enabled=True)
+        date_list = [(now - timedelta(days=x)).strftime('%Y-%m-%d') for x in range(10)]
+        date_list.reverse()
+        
+        for company in companies:
+            data = {
+                'company': company.id,
+                'task_finished': [],
+                'task_pending': [],
+                'users': [],
+                'graph': []
+            }
+            
+            if data is not None:
+                task = Task.objects.filter(is_enabled=True, departament_id=company.id, start_day=now.strftime("%Y-%m-%d")).order_by('start_day')
+                for tasks in task:
+                    ag_data = {
+                        'id': tasks.id,
+                        'nombre': tasks.name,
+                        'Tareas pendientes': tasks.is_pending,
+                        'Tareas finalizadas': tasks.is_finished,
+                        'Dia de inicio': str(tasks.start_day),
+                        'ejecutivo_username': '',
+                        'ejecutivo_name': ''
+                    }
+                    
+                    #if tasks.user_id is None:
+                    data['task_pending'].append(ag_data)
+                        
+                return Response(data, status=status.HTTP_200_OK)

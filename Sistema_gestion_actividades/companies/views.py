@@ -14,6 +14,7 @@ from django.utils.timezone import localtime
 from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth.forms import PasswordChangeForm, UserCreationForm, AuthenticationForm
 from django.utils import timezone
+from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 from rest_framework import status, serializers
 from rest_framework import viewsets
 from django.views.decorators.csrf import csrf_exempt
@@ -36,10 +37,10 @@ from companies.models import Company, Department, Roles
 User = get_user_model()
 
 class LoginViewSet(APIView):
-    #permission_classes = [IsAuthenticatedOrReadOnly]
     authentication_classes = ()
+    
+    
 
-    #@csrf_protect
     def post(self, request, *args, **kwargs):
         # Verificar si el usuario ya está autenticado
         if request.user.is_authenticated:
@@ -48,11 +49,20 @@ class LoginViewSet(APIView):
         username = request.data.get('username')
         password = request.data.get('password')
         user = authenticate(request, username=username, password=password)
+
         if user is not None:
+            # Actualizar el campo is_online del usuario
+            user.is_online = True
+            user.save()
+
+            # Iniciar sesión del usuario
             login(request, user)
+
             return Response({'access': True, 'data': UserListSerializer(instance=user).data}, status=status.HTTP_200_OK)
         else:
             return Response({'message': 'Credenciales inválidas'}, status=status.HTTP_401_UNAUTHORIZED)
+
+
 class ValidateUserLoginViewSet(APIView):
     
     @login_required
@@ -67,9 +77,26 @@ class ValidateUserLoginViewSet(APIView):
 class LogoutView(APIView):
     authentication_classes = [TokenAuthentication]
 
-    def post(self, request, *args, **kwargs):
-        logout(request)
-        return Response({'message': 'Cierre de sesión exitoso'}, status=status.HTTP_200_OK)
+    def post(self, request,  *args, **kwargs):
+        # Verificar si el usuario está autenticado
+        user_t = User.objects.filter(id=request.POST.get('id'))
+        if user_t:
+            # Obtener la instancia del usuario autenticado
+            user = user_t
+            print(user)
+
+            # Actualizar el campo is_online del usuario
+            user.is_online = False
+            user.save()
+
+            # Cerrar sesión del usuario
+            logout(request)
+
+            return Response({'message': 'Cierre de sesión exitoso'}, status=status.HTTP_200_OK)
+        else:
+            # Usuario no autenticado, manejar de forma diferente
+            return Response({'message': 'Debe estar autenticado para cerrar sesión'}, status=status.HTTP_401_UNAUTHORIZED)
+
 
 class CompanyViewSet(ModelViewSet):
     #permission_classes = (IsAppAuthenticated, IsAppStaff, IsAuthenticated, IsSuperUser)
@@ -237,17 +264,17 @@ class ChangePasswordViewSet(APIView):
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class ChangePasswordViewSet(APIView):
-    def put(self, request, pk):
-        user = get_user_model().objects.get(pk=pk)
-        serializer = UserPasswordChangeSerializer(data=request.data)
+# class ChangePasswordViewSet(APIView):
+#     def put(self, request, pk):
+#         user = get_user_model().objects.get(pk=pk)
+#         serializer = UserPasswordChangeSerializer(data=request.data)
 
-        if serializer.is_valid():
-            user.password = make_password(serializer.validated_data.get('password'))
-            user.save(update_fields=['password'])
-            return Response({'message': 'Password changed', "User": user.username}, status=status.HTTP_200_OK)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#         if serializer.is_valid():
+#             user.password = make_password(serializer.validated_data.get('password'))
+#             user.save(update_fields=['password'])
+#             return Response({'message': 'Password changed', "User": user.username}, status=status.HTTP_200_OK)
+#         else:
+#             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
  
     
 class UserRolViewSet(ModelViewSet):
