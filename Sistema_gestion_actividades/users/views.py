@@ -39,7 +39,7 @@ class UserCustomerViewSet(ModelViewSet):
     queryset = UserCustomer.objects.all()
     serializer_class = UserCustomerListSerializer
     filter_backends = (DjangoFilterBackend,)
-    #filter_fields = ('is_enabled',)
+    filterset_fields = ['username']
 
 
     def create(self, request, *args, **kwargs):

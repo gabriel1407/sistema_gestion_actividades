@@ -28,6 +28,8 @@ from rest_framework.response import Response
 from rest_framework.serializers import Serializer
 from rest_framework.views import APIView
 from rest_framework.authentication import TokenAuthentication
+from users.models import UserCustomer
+from users.serializers import UserCustomerListSerializer
 from django.contrib.auth.models import User
 from companies.serializers import UserSerializer, CompanySerializer, CompanyListSerializer, DepartmentListSerializer, DepartmentSerializer, UserListSerializer, \
     UserCreateSerializer, UserListSerializer, UserRoleSerializer, UserPasswordChangeSerializer, UserRoleListSerializer
@@ -39,26 +41,18 @@ User = get_user_model()
 class LoginViewSet(APIView):
     authentication_classes = ()
     
-    
-
     def post(self, request, *args, **kwargs):
         # Verificar si el usuario ya está autenticado
-        if request.user.is_authenticated:
-            return Response({'message': 'El usuario ya está autenticado'}, status=status.HTTP_400_BAD_REQUEST)
+        #if request.user.is_authenticated:
+        #    return Response({'message': 'El usuario ya está autenticado'}, status=status.HTTP_400_BAD_REQUEST)
 
-        username = request.data.get('username')
-        password = request.data.get('password')
-        user = authenticate(request, username=username, password=password)
+        username = UserCustomer.objects.get(username = request.data.get('username'))
+        password = UserCustomer.objects.get(password = request.data.get('password'))
+        print(username)
+        print(password)
+        if username and password is None:
 
-        if user is not None:
-            # Actualizar el campo is_online del usuario
-            user.is_online = True
-            user.save()
-
-            # Iniciar sesión del usuario
-            login(request, user)
-
-            return Response({'access': True, 'data': UserListSerializer(instance=user).data}, status=status.HTTP_200_OK)
+            return Response({'access': True, 'data': UserCustomerListSerializer(instance=username).data}, status=status.HTTP_200_OK)
         else:
             return Response({'message': 'Credenciales inválidas'}, status=status.HTTP_401_UNAUTHORIZED)
 
