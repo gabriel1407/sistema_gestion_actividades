@@ -7,7 +7,7 @@ from django.conf import settings
 from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model, authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib.auth.hashers import make_password
+from django.contrib.auth.hashers import make_password, check_password
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse, Http404
 from django.utils.timezone import localtime
@@ -45,13 +45,21 @@ class LoginViewSet(APIView):
         # Verificar si el usuario ya está autenticado
         #if request.user.is_authenticated:
         #    return Response({'message': 'El usuario ya está autenticado'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            username = UserCustomer.objects.get(username=request.data.get("username"))
+        except UserCustomer.DoesNotExist:
+            return Response({'message': 'Credenciales inválidas'}, status=status.HTTP_401_UNAUTHORIZED)
 
-        username = UserCustomer.objects.get(username = request.data.get('username'))
-        password = UserCustomer.objects.get(password = request.data.get('password'))
+        password = username.password
         print(username)
         print(password)
-        if username and password is None:
 
+        if username.last_login is not None:
+            return Response({'message': 'El usuario ya está autenticado'}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+        if username and password and check_password(request.data.get("password"), password):
+            username.last_login = timezone.now()
             return Response({'access': True, 'data': UserCustomerListSerializer(instance=username).data}, status=status.HTTP_200_OK)
         else:
             return Response({'message': 'Credenciales inválidas'}, status=status.HTTP_401_UNAUTHORIZED)

@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-wr#z6a24d+)*@%ozx9j(=ic&xv_5dazgbit!2xwky0xazwucsb
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 #AUTH_USER_MODEL = 'companies.User'
 
@@ -107,7 +107,8 @@ DATABASES = {
         'NAME': 'project_tesis',
         'USER': 'gabriel',
         'PASSWORD': 'carvajal1407',
-        'HOST': '127.0.0.1',
+        #'HOST': '127.0.0.1',
+        'HOST': '192.168.1.51',
         'PORT': 3306,
     }
 }

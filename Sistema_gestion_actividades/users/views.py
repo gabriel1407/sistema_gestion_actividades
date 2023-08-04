@@ -11,7 +11,7 @@ from django.shortcuts import render, redirect
 #from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model, authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib.auth.hashers import make_password
+from django.contrib.auth.hashers import make_password, check_password
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse, Http404
@@ -53,11 +53,20 @@ class UserCustomerViewSet(ModelViewSet):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def update(self, request, *args, **kwargs):
-        company = self.get_object()
-        serializer = UserCustomerSerializer(company, data=request.data, partial=True)
+        user = self.get_object()
+        serializer = UserCustomerSerializer(user, data=request.data, partial=True)
 
         if serializer.is_valid():
-            serializer.validated_data['password'] = make_password(serializer.validated_data.get('password'))
+            # Check if a new password is provided
+            new_password = serializer.validated_data.get('password')
+            if new_password:
+                # Only encrypt the password if it is different from the current one
+                if check_password(new_password, user.password):
+                    serializer.validated_data['password'] = user.password
+                else:
+                    serializer.validated_data['password'] = make_password(
+                        new_password)
+
             serializer.save()
 
             return Response(UserCustomerListSerializer(instance=serializer.instance).data, status=status.HTTP_200_OK)

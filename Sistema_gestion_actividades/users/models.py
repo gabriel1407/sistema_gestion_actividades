@@ -7,51 +7,60 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from companies.models import Roles, Company
 # Create your models here.
 
-class CustomUserManager(BaseUserManager):
-    def create_user(self, email, username, password=None, **extra_fields):
+class UserManager(BaseUserManager):
+    def create_user(self, username, password, email, first_name=None, last_name=None, is_active=False, rol=None):
+        if not username:
+            raise ValueError("El usuario debe tener un nombre de usuario")
+        if not password:
+            raise ValueError("El usuario debe tener una contraseña")
         if not email:
-            raise ValueError('Email es obligatorio')
-        email = self.normalize_email(email)
-        user = self.model(email=email, username=username, **extra_fields)
+            raise ValueError("El usuario debe tener un email")
+        if UserCustomer.objects.filter(email=email).exists():
+            raise ValueError("El email ya está registrado")
+        user = self.model(
+            username=username,
+            email=self.normalize_email(email),
+            first_name=first_name,
+            last_name=last_name,
+            is_active=is_active,
+            rol=rol
+        )
         user.set_password(password)
-        user.save()
+        user.save(using=self._db)
         return user
 
-    def create_superuser(self, email, password=None, **extra_fields):
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_superuser', True)
-        return self.create_user(email, password, **extra_fields)
+    def create_superuser(self, username, password, email, first_name=None, last_name=None, rol=None):
+        user = self.create_user(
+            username=username,
+            #password=password,
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            is_active=True,
+            rol=rol
+        )
+        user.is_superuser = True
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
 
 
 class UserCustomer(AbstractBaseUser):
-    username = models.CharField(max_length=255, unique=True, null=False)
-    password = models.TextField(null=False, blank=False)
+    username = models.CharField(max_length=255, unique=True, null=True)
     email = models.EmailField(unique=True, null=False)
     first_name = models.CharField(max_length=200, null=True)
     last_name = models.CharField(max_length=200, null=True)
     is_active = models.BooleanField(default=False)
-    rol = models.ForeignKey(Roles, related_name='rol', on_delete=models.CASCADE, null=True)
+    rol = models.ForeignKey(Roles, related_name='rol',
+                            on_delete=models.CASCADE, null=True)
     created = models.DateTimeField(default=timezone.now, editable=False)
     modified = models.DateTimeField(default=timezone.now, editable=False)
 
-    #USERNAME_FIELD = ['username', 'password']
-    USERNAME_FIELD = 'password'
-    
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = ['username', 'first_name', 'last_name', 'password']
+
     class Meta:
         db_table = 'users_models'
         app_label = 'users'
-        
-    objects = CustomUserManager()
 
-    def __str__(self):
-        return self.username
-
-    def has_perm(self, perm, obj=None):
-        return True
-
-    def has_module_perms(self, app_label):
-        return True
-
-    def __init__(self, username, password, **kwargs):
-        super().__init__(username, **kwargs)
-        self.password = password
+    objects = UserManager()
