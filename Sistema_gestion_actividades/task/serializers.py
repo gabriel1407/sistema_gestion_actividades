@@ -1,6 +1,6 @@
 from django.conf import settings
 from rest_framework import serializers
-from task.models import Task, TaskHistory
+from task.models import Task, TaskHistory, ChatsTasks
 from companies.models import Company, Department
 from companies.serializers import DepartmentListSerializer, UserListSerializer
 from django.contrib.auth.models import User
@@ -31,3 +31,10 @@ class TaskHistoryListSerializer(serializers.ModelSerializer):
         fields = ('__all__')
         read_only_fields = ('id', 'created', 'modified',)
 
+
+class GetChatsTaskSerializer(serializers.ModelSerializer):
+    user = UserListSerializer(many=True, read_only=True)
+    class Meta:
+        model = ChatsTasks
+        fields = ('__all__')
+        read_only_fields = ('id', 'created', 'modified',)

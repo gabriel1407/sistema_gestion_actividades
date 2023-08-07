@@ -1,7 +1,6 @@
 import datetime
 from datetime import datetime
 import os
-
 import requests
 import openpyxl
 from openpyxl.utils import get_column_letter
@@ -29,8 +28,8 @@ from rest_framework.parsers import JSONParser, FormParser
 from rest_framework.response import Response
 from rest_framework.serializers import Serializer
 from rest_framework.views import APIView
-from task.models import Task, TaskHistory
-from task.serializers import TaskListSerializer, TaskSerializer, TaskHistoryListSerializer
+from task.models import Task, TaskHistory, ChatsTasks
+from task.serializers import TaskListSerializer, TaskSerializer, TaskHistoryListSerializer, GetChatsTaskSerializer
 from task.filters import CreatedBetweenFilter
 from companies.models import Company
 from companies.serializers import UserListSerializer
@@ -57,9 +56,16 @@ class TaskViewSet(ModelViewSet):
             for user in users:
                 print("Usuario: ", user.email)
                 if user is not None:
-                    image = Image.open('C:/Users/gabri/OneDrive/Documentos/Repositorios-github/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/actividades-de-trabajo-en-equipo.png')
+                    #image = Image.open('C:/Users/gabri/OneDrive/Documentos/Repositorios-github/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/actividades-de-trabajo-en-equipo.png')
+                    image = Image.open('/home/pegaso/projects_gabriel/Sistema_gestion_actividades/task/templates/actividades-de-trabajo-en-equipo.png')
                     new_image = image.resize((300, 99))
-                    html_msg = loader.render_to_string('C:/Users/gabri/OneDrive/Documentos/Repositorios-github/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/sendemail.html', {
+                    # html_msg = loader.render_to_string('C:/Users/gabri/OneDrive/Documentos/Repositorios-github/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/sendemail.html', {
+                    #     "Usuario": " ".join(list(map(lambda x: x.capitalize(), user.username.split(" ")))),
+                    #     "tarea": str(task_day.description),
+                    #     'fecha_inicio': str(task_day.start_day),
+                    #     'fecha_entrega': str(task_day.end_day),
+                    # })
+                    html_msg = loader.render_to_string('/home/pegaso/projects_gabriel/Sistema_gestion_actividades/task/templates/sendemail.html', {
                         "Usuario": " ".join(list(map(lambda x: x.capitalize(), user.username.split(" ")))),
                         "tarea": str(task_day.description),
                         'fecha_inicio': str(task_day.start_day),
@@ -96,7 +102,7 @@ class TaskViewSet(ModelViewSet):
             start_day_actual = datetime.date(datetime.now())
             print(start_day_actual)
             #replace_data = start_day_actual.replace(microsecond=0)
-            if start_day <= start_day_actual:
+            if start_day < start_day_actual:
                 return Response({'Messages': 'No puedes crear una tarea con una fecha del dia de ayer'}, status=status.HTTP_400_BAD_REQUEST)
             
             elif end_day <= start_day:
@@ -122,7 +128,7 @@ class TaskViewSet(ModelViewSet):
                     serializer.save()
 
                     user_ids = request.data.get('user', [])
-                    users = User.objects.filter(is_active=True, id__in=user_ids)
+                    users = UserCustomer.objects.filter(is_active=True, id__in=user_ids)
 
                     for user in users:
                         history = TaskHistory(
@@ -160,7 +166,7 @@ class ReportTaskFinished(APIView):
         sheet = wb.active
         
         # Crear los encabezados de las columnas
-        headers = ['ID', 'name', 'description', 'is_enabled', 'is_finished', 'is_pending', 'is_started', 'user', 'departament', 'start_day', 'end_day', 'created']  # Reemplaza los campos con los correctos
+        headers = ['ID', 'name', 'description', 'is_enabled', 'is_finished', 'is_pending', 'is_started', 'user', 'departament', 'start_day', 'end_day']  # Reemplaza los campos con los correctos
         for col_num, header_title in enumerate(headers, 1):
             col_letter = get_column_letter(col_num)
             sheet.column_dimensions[col_letter].width = 15
@@ -171,9 +177,10 @@ class ReportTaskFinished(APIView):
         # Llenar la información de las filas
         for row_num, obj in enumerate(queryset, 2):
             sheet.cell(row=row_num, column=1).value = obj.id
-            sheet.cell(row=row_num, column=3).value = obj.name
-            sheet.cell(row=row_num, column=4).value = obj.description
-            sheet.cell(row=row_num, column=5).value = obj.is_enabled
+            sheet.cell(row=row_num, column=2).value = obj.name
+            sheet.cell(row=row_num, column=3).value = obj.description
+            sheet.cell(row=row_num, column=4).value = obj.is_enabled
+            sheet.cell(row=row_num, column=5).value = obj.is_finished
             sheet.cell(row=row_num, column=6).value = obj.is_pending
             sheet.cell(row=row_num, column=7).value = obj.is_started
             sheet.cell(row=row_num, column=8).value = ', '.join(obj.user.values_list('username', flat=True))  # Obtener una lista de nombres de usuarios separados por comas
@@ -183,9 +190,10 @@ class ReportTaskFinished(APIView):
             sheet.cell(row=row_num, column=11).value = obj.end_day
         
         # Guardar el archivo de Excel
+        file_path = os.path.join('/home/pegaso/projects_gabriel/media', 'task_finished.xlsx')
         response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        response['Content-Disposition'] = 'attachment; filename="task_finished.xlsx"'
-        wb.save(response)
+        response['Content-Disposition'] = 'attachment; filename="{}"'.format(file_path)
+        wb.save(file_path)
         
         return response
     
@@ -227,3 +235,14 @@ class DashboardUserViewSet(APIView):
                     data['task_pending'].append(ag_data)
                         
                 return Response(data, status=status.HTTP_200_OK)
+            
+
+
+class GetChatsChannelViewSet(APIView):
+
+    def get(self, request, *args, **kwargs):
+
+
+        chats = ChatsTasks.objects.filter(is_closed=False,is_enabled=True)
+        serializer = GetChatsTaskSerializer(chats, many=True, context={"request": request})
+        return Response(serializer.data)
