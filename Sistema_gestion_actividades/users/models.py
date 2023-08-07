@@ -19,7 +19,7 @@ class UserManager(BaseUserManager):
             raise ValueError("El email ya está registrado")
         user = self.model(
             username=username,
-            email=self.normalize_email(email),
+            #email=self.normalize_email(email),
             first_name=first_name,
             last_name=last_name,
             is_active=is_active,
@@ -33,7 +33,7 @@ class UserManager(BaseUserManager):
         user = self.create_user(
             username=username,
             #password=password,
-            email=email,
+            #email=email,
             first_name=first_name,
             last_name=last_name,
             is_active=True,

@@ -4,7 +4,7 @@ import requests
 
 from django.http import JsonResponse
 from django.conf import settings
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import get_user_model, authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.hashers import make_password, check_password
@@ -46,60 +46,42 @@ class LoginViewSet(APIView):
         #if request.user.is_authenticated:
         #    return Response({'message': 'El usuario ya está autenticado'}, status=status.HTTP_400_BAD_REQUEST)
         try:
-            username = UserCustomer.objects.get(username=request.data.get("username"))
+            username = UserCustomer.objects.filter(username=request.data.get("username")).first()
         except UserCustomer.DoesNotExist:
             return Response({'message': 'Credenciales inválidas'}, status=status.HTTP_401_UNAUTHORIZED)
 
         password = username.password
         print(username)
         print(password)
-
+        print(username.last_login)
+        
         if username.last_login is not None:
             return Response({'message': 'El usuario ya está autenticado'}, status=status.HTTP_400_BAD_REQUEST)
-        
+            
 
-        if username and password and check_password(request.data.get("password"), password):
+        if username and password and check_password(request.data["password"], password):
             username.last_login = timezone.now()
+            username.save()
             return Response({'access': True, 'data': UserCustomerListSerializer(instance=username).data}, status=status.HTTP_200_OK)
+        # Si no, devolver un mensaje de error
         else:
             return Response({'message': 'Credenciales inválidas'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
-class ValidateUserLoginViewSet(APIView):
-    
-    @login_required
-    def post(self, request, *args, **kwargs):
-        
-        user = request.user
-        if user.is_authenticated:
-            return JsonResponse({'logged_in': request.user})
-        else:
-            return JsonResponse({'logged_in': False})
-
 class LogoutView(APIView):
     authentication_classes = [TokenAuthentication]
 
-    def post(self, request,  *args, **kwargs):
-        # Verificar si el usuario está autenticado
-        user_t = User.objects.filter(id=request.POST.get('id'))
-        if user_t:
-            # Obtener la instancia del usuario autenticado
-            user = user_t
-            print(user)
+    def post(self, request, id, *args, **kwargs): # Añadir el argumento id
+        try:
+            user = UserCustomer.objects.get(id=id)
+        except UserCustomer.DoesNotExist:
+            return Response({'message': 'El usuario no existe'}, status=status.HTTP_404_NOT_FOUND)
 
-            # Actualizar el campo is_online del usuario
-            user.is_online = False
-            user.save()
+        # Actualizar el campo is_online del usuario
+        user.last_login = None
+        user.save()
 
-            # Cerrar sesión del usuario
-            logout(request)
-
-            return Response({'message': 'Cierre de sesión exitoso'}, status=status.HTTP_200_OK)
-        else:
-            # Usuario no autenticado, manejar de forma diferente
-            return Response({'message': 'Debe estar autenticado para cerrar sesión'}, status=status.HTTP_401_UNAUTHORIZED)
-
-
+        return Response({'message': 'Cierre de sesión exitoso'}, status=status.HTTP_200_OK)
 class CompanyViewSet(ModelViewSet):
     #permission_classes = (IsAppAuthenticated, IsAppStaff, IsAuthenticated, IsSuperUser)
     queryset = Company.objects.all()
@@ -266,19 +248,6 @@ class ChangePasswordViewSet(APIView):
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# class ChangePasswordViewSet(APIView):
-#     def put(self, request, pk):
-#         user = get_user_model().objects.get(pk=pk)
-#         serializer = UserPasswordChangeSerializer(data=request.data)
-
-#         if serializer.is_valid():
-#             user.password = make_password(serializer.validated_data.get('password'))
-#             user.save(update_fields=['password'])
-#             return Response({'message': 'Password changed', "User": user.username}, status=status.HTTP_200_OK)
-#         else:
-#             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
- 
-    
 class UserRolViewSet(ModelViewSet):
     #permission_classes = (IsAppAuthenticated, IsAppStaff, IsAuthenticated, IsCompanyPermission)
     serializer_class = UserRoleListSerializer

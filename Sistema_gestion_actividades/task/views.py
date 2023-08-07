@@ -1,7 +1,11 @@
 import datetime
 from datetime import datetime
+import os
 
 import requests
+import openpyxl
+from openpyxl.utils import get_column_letter
+from openpyxl.styles import Font
 
 from PIL import Image
 from django.http import JsonResponse
@@ -53,9 +57,9 @@ class TaskViewSet(ModelViewSet):
             for user in users:
                 print("Usuario: ", user.email)
                 if user is not None:
-                    image = Image.open('C:/Users/gabri/OneDrive/Documentos/Repositorios-github/sistema_gestion/Sistema_gestion_actividades/task/templates/actividades-de-trabajo-en-equipo.png')
+                    image = Image.open('C:/Users/gabri/OneDrive/Documentos/Repositorios-github/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/actividades-de-trabajo-en-equipo.png')
                     new_image = image.resize((300, 99))
-                    html_msg = loader.render_to_string('C:/Users/gabri/OneDrive/Documentos/Repositorios-github/sistema_gestion/Sistema_gestion_actividades/task/templates/sendemail.html', {
+                    html_msg = loader.render_to_string('C:/Users/gabri/OneDrive/Documentos/Repositorios-github/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/sendemail.html', {
                         "Usuario": " ".join(list(map(lambda x: x.capitalize(), user.username.split(" ")))),
                         "tarea": str(task_day.description),
                         'fecha_inicio': str(task_day.start_day),
@@ -101,9 +105,9 @@ class TaskViewSet(ModelViewSet):
             
             serialize.save()
             task_t = TaskListSerializer(instance=serialize.instance).data
-            #self.send_email(request)
-            #return Response(TaskListSerializer(instance=serialize.instance).data, status=status.HTTP_201_CREATED)
-            return self.send_email(request, task_t["id"], task_t["user"])
+            self.send_email(request, task_t["id"], task_t["user"])
+            return Response(TaskListSerializer(instance=serialize.instance).data, status=status.HTTP_201_CREATED)
+            #return self.send_email(request, task_t["id"], task_t["user"])
         else:
             return Response(serialize.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -141,12 +145,49 @@ class TaskViewSet(ModelViewSet):
         except Exception as e:
             return Response({'messages': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-class ReportTaskFinished(ReadOnlyModelViewSet):
+class ReportTaskFinished(APIView):
     queryset = TaskHistory.objects.all()
     serializer_class = TaskHistoryListSerializer
     filter_backends = (DjangoFilterBackend, CreatedBetweenFilter)
     filter_fields = ('is_enabled',)
     
+    def get(self, request, *args, **kwargs):
+        # Obtener los objetos de TaskHistory según los filtros
+        queryset = TaskHistory.objects.filter(is_enabled=True).order_by('-created')
+        
+        # Crear un nuevo archivo de Excel
+        wb = openpyxl.Workbook()
+        sheet = wb.active
+        
+        # Crear los encabezados de las columnas
+        headers = ['ID', 'name', 'description', 'is_enabled', 'is_finished', 'is_pending', 'is_started', 'user', 'departament', 'start_day', 'end_day', 'created']  # Reemplaza los campos con los correctos
+        for col_num, header_title in enumerate(headers, 1):
+            col_letter = get_column_letter(col_num)
+            sheet.column_dimensions[col_letter].width = 15
+            cell = sheet.cell(row=1, column=col_num)
+            cell.value = header_title
+            cell.font = Font(bold=True)
+        
+        # Llenar la información de las filas
+        for row_num, obj in enumerate(queryset, 2):
+            sheet.cell(row=row_num, column=1).value = obj.id
+            sheet.cell(row=row_num, column=3).value = obj.name
+            sheet.cell(row=row_num, column=4).value = obj.description
+            sheet.cell(row=row_num, column=5).value = obj.is_enabled
+            sheet.cell(row=row_num, column=6).value = obj.is_pending
+            sheet.cell(row=row_num, column=7).value = obj.is_started
+            sheet.cell(row=row_num, column=8).value = ', '.join(obj.user.values_list('username', flat=True))  # Obtener una lista de nombres de usuarios separados por comas
+            # Opción alternativa: sheet.cell(row=row_num, column=8).value = obj.user.first().username  # Obtener el primer nombre de usuario
+            sheet.cell(row=row_num, column=9).value = obj.departament.name
+            sheet.cell(row=row_num, column=10).value = obj.start_day
+            sheet.cell(row=row_num, column=11).value = obj.end_day
+        
+        # Guardar el archivo de Excel
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="task_finished.xlsx"'
+        wb.save(response)
+        
+        return response
     
 class DashboardUserViewSet(APIView):
     
