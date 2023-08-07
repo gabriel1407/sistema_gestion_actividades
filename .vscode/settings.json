@@ -1,6 +1,0 @@
-{
-    "python.analysis.extraPaths": [
-        "./Sistema_gestion_actividades"
-    ],
-    "python.analysis.typeCheckingMode": "off"
-}
