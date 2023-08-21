@@ -1,5 +1,6 @@
 import datetime
 from datetime import datetime
+import tempfile
 import os
 import requests
 import openpyxl
@@ -57,20 +58,22 @@ class TaskViewSet(ModelViewSet):
                 print("Usuario: ", user.email)
                 if user is not None:
                     #image = Image.open('C:/Users/gabri/OneDrive/Documentos/Repositorios-github/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/actividades-de-trabajo-en-equipo.png')
-                    image = Image.open('/home/pegaso/projects_gabriel/Sistema_gestion_actividades/task/templates/actividades-de-trabajo-en-equipo.png')
+                    image = Image.open('C:/Users/gabriel.carvajal/Documents/GitHub/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/actividades-de-trabajo-en-equipo.png')
+                    #image = Image.open('/home/pegaso/projects_gabriel/Sistema_gestion_actividades/task/templates/actividades-de-trabajo-en-equipo.png')
                     new_image = image.resize((300, 99))
-                    # html_msg = loader.render_to_string('C:/Users/gabri/OneDrive/Documentos/Repositorios-github/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/sendemail.html', {
-                    #     "Usuario": " ".join(list(map(lambda x: x.capitalize(), user.username.split(" ")))),
-                    #     "tarea": str(task_day.description),
-                    #     'fecha_inicio': str(task_day.start_day),
-                    #     'fecha_entrega': str(task_day.end_day),
-                    # })
-                    html_msg = loader.render_to_string('/home/pegaso/projects_gabriel/Sistema_gestion_actividades/task/templates/sendemail.html', {
+                    #html_msg = loader.render_to_string('C:/Users/gabri/OneDrive/Documentos/Repositorios-github/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/sendemail.html', {
+                    html_msg = loader.render_to_string('C:/Users/gabriel.carvajal/Documents/GitHub/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/sendemail.html', {
                         "Usuario": " ".join(list(map(lambda x: x.capitalize(), user.username.split(" ")))),
                         "tarea": str(task_day.description),
                         'fecha_inicio': str(task_day.start_day),
                         'fecha_entrega': str(task_day.end_day),
                     })
+                    # html_msg = loader.render_to_string('/home/pegaso/projects_gabriel/Sistema_gestion_actividades/task/templates/sendemail.html', {
+                    #     "Usuario": " ".join(list(map(lambda x: x.capitalize(), user.username.split(" ")))),
+                    #     "tarea": str(task_day.description),
+                    #     'fecha_inicio': str(task_day.start_day),
+                    #     'fecha_entrega': str(task_day.end_day),
+                    # })
                     html_msg = html_msg.replace('%% my_image %%', '{{ my_image }}')
                     email = EmailSender(
                         host=settings.EMAIL_HOST,
@@ -164,6 +167,8 @@ class ReportTaskFinished(APIView):
         # Crear un nuevo archivo de Excel
         wb = openpyxl.Workbook()
         sheet = wb.active
+        users = UserCustomer.objects.all()
+        user_names = ', '.join(user.username for user in users if user.username)
         
         # Crear los encabezados de las columnas
         headers = ['ID', 'name', 'description', 'is_enabled', 'is_finished', 'is_pending', 'is_started', 'user', 'departament', 'start_day', 'end_day']  # Reemplaza los campos con los correctos
@@ -183,14 +188,15 @@ class ReportTaskFinished(APIView):
             sheet.cell(row=row_num, column=5).value = obj.is_finished
             sheet.cell(row=row_num, column=6).value = obj.is_pending
             sheet.cell(row=row_num, column=7).value = obj.is_started
-            sheet.cell(row=row_num, column=8).value = ', '.join(obj.user.values_list('username', flat=True))  # Obtener una lista de nombres de usuarios separados por comas
+            sheet.cell(row=row_num, column=8).value = user_names
             # Opción alternativa: sheet.cell(row=row_num, column=8).value = obj.user.first().username  # Obtener el primer nombre de usuario
             sheet.cell(row=row_num, column=9).value = obj.departament.name
             sheet.cell(row=row_num, column=10).value = obj.start_day
             sheet.cell(row=row_num, column=11).value = obj.end_day
         
         # Guardar el archivo de Excel
-        file_path = os.path.join('/home/pegaso/projects_gabriel/media', 'task_finished.xlsx')
+        #file_path = os.path.join('/home/pegaso/projects_gabriel/media', 'task_finished.xlsx')
+        file_path = os.path.join('C:/Users/gabriel.carvajal/Documents/GitHub/sistema_gestion_actividades/Sistema_gestion_actividades/staticfiles/media', 'task_finished.xlsx')
         response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         response['Content-Disposition'] = 'attachment; filename="{}"'.format(file_path)
         wb.save(file_path)
