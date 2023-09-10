@@ -57,12 +57,12 @@ class TaskViewSet(ModelViewSet):
             for user in users:
                 print("Usuario: ", user.email)
                 if user is not None:
-                    #image = Image.open('C:/Users/gabri/OneDrive/Documentos/Repositorios-github/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/actividades-de-trabajo-en-equipo.png')
-                    image = Image.open('C:/Users/gabriel.carvajal/Documents/GitHub/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/actividades-de-trabajo-en-equipo.png')
+                    image = Image.open('C:/Users/gabri/OneDrive/Documentos/Repositorios-github/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/actividades-de-trabajo-en-equipo.png')
+                    #image = Image.open('C:/Users/gabriel.carvajal/Documents/GitHub/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/actividades-de-trabajo-en-equipo.png')
                     #image = Image.open('/home/pegaso/projects_gabriel/Sistema_gestion_actividades/task/templates/actividades-de-trabajo-en-equipo.png')
                     new_image = image.resize((300, 99))
-                    #html_msg = loader.render_to_string('C:/Users/gabri/OneDrive/Documentos/Repositorios-github/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/sendemail.html', {
-                    html_msg = loader.render_to_string('C:/Users/gabriel.carvajal/Documents/GitHub/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/sendemail.html', {
+                    html_msg = loader.render_to_string('C:/Users/gabri/OneDrive/Documentos/Repositorios-github/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/sendemail.html', {
+                    #html_msg = loader.render_to_string('C:/Users/gabriel.carvajal/Documents/GitHub/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/sendemail.html', {
                         "Usuario": " ".join(list(map(lambda x: x.capitalize(), user.username.split(" ")))),
                         "tarea": str(task_day.description),
                         'fecha_inicio': str(task_day.start_day),
@@ -196,7 +196,8 @@ class ReportTaskFinished(APIView):
         
         # Guardar el archivo de Excel
         #file_path = os.path.join('/home/pegaso/projects_gabriel/media', 'task_finished.xlsx')
-        file_path = os.path.join('C:/Users/gabriel.carvajal/Documents/GitHub/sistema_gestion_actividades/Sistema_gestion_actividades/staticfiles/media', 'task_finished.xlsx')
+        #file_path = os.path.join(f'{settings.STATIC_ROOT}/media', 'task_finished.xlsx')
+        file_path = os.path.join(f'{settings.STATIC_ROOT}/media', 'task_finished.xlsx')
         response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         response['Content-Disposition'] = 'attachment; filename="{}"'.format(file_path)
         wb.save(file_path)
