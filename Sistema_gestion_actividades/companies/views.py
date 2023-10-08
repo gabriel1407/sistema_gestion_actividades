@@ -46,7 +46,7 @@ class LoginViewSet(APIView):
         #if request.user.is_authenticated:
         #    return Response({'message': 'El usuario ya está autenticado'}, status=status.HTTP_400_BAD_REQUEST)
         try:
-            username = UserCustomer.objects.filter(username=request.data.get("username")).first()
+            username = UserCustomer.objects.get(username=request.data.get("username"))
         except UserCustomer.DoesNotExist:
             return Response({'message': 'Credenciales inválidas'}, status=status.HTTP_401_UNAUTHORIZED)
 
@@ -82,6 +82,7 @@ class LogoutView(APIView):
         user.save()
 
         return Response({'message': 'Cierre de sesión exitoso'}, status=status.HTTP_200_OK)
+    
 class CompanyViewSet(ModelViewSet):
     #permission_classes = (IsAppAuthenticated, IsAppStaff, IsAuthenticated, IsSuperUser)
     queryset = Company.objects.all()

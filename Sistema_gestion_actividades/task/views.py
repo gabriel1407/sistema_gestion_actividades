@@ -245,11 +245,3 @@ class DashboardUserViewSet(APIView):
             
 
 
-class GetChatsChannelViewSet(APIView):
-
-    def get(self, request, *args, **kwargs):
-
-
-        chats = ChatsTasks.objects.filter(is_closed=False,is_enabled=True)
-        serializer = GetChatsTaskSerializer(chats, many=True, context={"request": request})
-        return Response(serializer.data)
