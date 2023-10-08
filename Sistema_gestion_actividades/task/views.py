@@ -57,23 +57,20 @@ class TaskViewSet(ModelViewSet):
             for user in users:
                 print("Usuario: ", user.email)
                 if user is not None:
-                    image = Image.open('C:/Users/gabri/OneDrive/Documentos/Repositorios-github/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/actividades-de-trabajo-en-equipo.png')
-                    #image = Image.open('C:/Users/gabriel.carvajal/Documents/GitHub/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/actividades-de-trabajo-en-equipo.png')
-                    #image = Image.open('/home/pegaso/projects_gabriel/Sistema_gestion_actividades/task/templates/actividades-de-trabajo-en-equipo.png')
+                    #image = Image.open('C:/Users/gabri/OneDrive/Documentos/Repositorios-github/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/actividades-de-trabajo-en-equipo.png')
+                    #image = Image.open(f'{settings.MEDIA_ROOT}/actividades-de-trabajo-en-equipo.png')
+                    image = Image.open('C:/Users/gabri/Documents/GitHub/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/actividades-de-trabajo-en-equipo.png')
+                    print('image', image)
                     new_image = image.resize((300, 99))
-                    html_msg = loader.render_to_string('C:/Users/gabri/OneDrive/Documentos/Repositorios-github/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/sendemail.html', {
-                    #html_msg = loader.render_to_string('C:/Users/gabriel.carvajal/Documents/GitHub/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/sendemail.html', {
+                    #html_msg = loader.render_to_string('C:/Users/gabri/OneDrive/Documentos/Repositorios-github/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/sendemail.html', {
+                    html_msg = loader.render_to_string('C:/Users/gabri/Documents/GitHub/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/sendemail.html', {
                         "Usuario": " ".join(list(map(lambda x: x.capitalize(), user.username.split(" ")))),
                         "tarea": str(task_day.description),
                         'fecha_inicio': str(task_day.start_day),
                         'fecha_entrega': str(task_day.end_day),
                     })
-                    # html_msg = loader.render_to_string('/home/pegaso/projects_gabriel/Sistema_gestion_actividades/task/templates/sendemail.html', {
-                    #     "Usuario": " ".join(list(map(lambda x: x.capitalize(), user.username.split(" ")))),
-                    #     "tarea": str(task_day.description),
-                    #     'fecha_inicio': str(task_day.start_day),
-                    #     'fecha_entrega': str(task_day.end_day),
-                    # })
+                    print('html_msg', html_msg)
+
                     html_msg = html_msg.replace('%% my_image %%', '{{ my_image }}')
                     email = EmailSender(
                         host=settings.EMAIL_HOST,
@@ -111,12 +108,13 @@ class TaskViewSet(ModelViewSet):
             elif end_day <= start_day:
                 return Response({'Messages': 'La fecha de entrega tiene que ser mayor o igual al dia que se asigno la fecha'}, status=status.HTTP_400_BAD_REQUEST)
             
-            
             serialize.save()
             task_t = TaskListSerializer(instance=serialize.instance).data
-            self.send_email(request, task_t["id"], task_t["user"])
+
+            for user_id in task_t["user"]:
+                self.send_email(request, task_t["id"], user_id)
+
             return Response(TaskListSerializer(instance=serialize.instance).data, status=status.HTTP_201_CREATED)
-            #return self.send_email(request, task_t["id"], task_t["user"])
         else:
             return Response(serialize.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -127,7 +125,8 @@ class TaskViewSet(ModelViewSet):
 
             if serializer.is_valid(raise_exception=True):
                 task_finish = serializer.validated_data.get('is_finished')
-                if task_finish:
+                percentage_task = serializer.validated_data.get('percentage_task')
+                if task_finish or percentage_task == 100:
                     serializer.save()
 
                     user_ids = request.data.get('user', [])

@@ -18,7 +18,7 @@ class Company(models.Model):
     name = models.CharField(max_length=120, null=False, blank=False)
     is_enabled = models.BooleanField(default=True)
     #users = models.ManyToManyField(User)
-    users = models.ManyToManyField('users.UserCustomer')
+    #users = models.ManyToManyField('users.UserCustomer')
     created = models.DateTimeField(default=timezone.now, editable=False)
     modified = models.DateTimeField(default=timezone.now, editable=False)
 
@@ -32,7 +32,7 @@ class Department(models.Model):
     name = models.CharField(max_length=180, null=False, blank=False)
     is_enabled = models.BooleanField(default=True)
     #user = models.ForeignKey(User, on_delete=models.PROTECT)
-    user = models.ForeignKey('users.UserCustomer', on_delete=models.PROTECT)
+    user = models.ManyToManyField('users.UserCustomer', null = True)
     created = models.DateTimeField(default=timezone.now, editable=False)
     modified = models.DateTimeField(default=timezone.now, editable=False)
 

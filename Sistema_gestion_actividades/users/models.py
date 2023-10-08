@@ -50,7 +50,7 @@ class UserCustomer(AbstractBaseUser):
     email = models.EmailField(unique=True, null=False)
     first_name = models.CharField(max_length=200, null=True)
     last_name = models.CharField(max_length=200, null=True)
-    is_active = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
     rol = models.ForeignKey(Roles, related_name='rol',
                             on_delete=models.CASCADE, null=True)
     created = models.DateTimeField(default=timezone.now, editable=False)
