@@ -238,14 +238,31 @@ class UserViewSet(APIView):
 
 
 class ChangePasswordViewSet(APIView):
+    
+    def get(self, request, *args, **kwargs):
+        my_data = UserCustomer.objects.get(username=request.data.get('username'))
+        serializer = UserCustomerListSerializer(my_data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
     def put(self, request, *args, **kwargs):
-        user = self.get_object()
-        serializer = UserPasswordChangeSerializer(data=request.data)
+        username = request.GET.get('username')
+        user = get_object_or_404(UserCustomer, username=username)
+        serializer = UserCreateSerializer(user, data=request.data, partial=True)
 
         if serializer.is_valid():
-            user.password = make_password(serializer.validated_data.get('password'))
-            user.save(update_fields=['password'])
-            return Response({'message': 'Password changed', "User": user}, status=status.HTTP_200_OK)
+            # Check if a new password is provided
+            new_password = serializer.validated_data.get('password')
+            if new_password:
+                # Only encrypt the password if it is different from the current one
+                if check_password(new_password, user.password):
+                    serializer.validated_data['password'] = user.password
+                else:
+                    serializer.validated_data['password'] = make_password(
+                        new_password)
+
+            serializer.save()
+
+            return Response(UserCustomerListSerializer(instance=serializer.instance).data, status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

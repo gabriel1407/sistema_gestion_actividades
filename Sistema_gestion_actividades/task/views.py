@@ -58,18 +58,19 @@ class TaskViewSet(ModelViewSet):
                 print("Usuario: ", user.email)
                 if user is not None:
                     #image = Image.open('C:/Users/gabri/OneDrive/Documentos/Repositorios-github/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/actividades-de-trabajo-en-equipo.png')
-                    #image = Image.open(f'{settings.MEDIA_ROOT}/actividades-de-trabajo-en-equipo.png')
-                    image = Image.open('C:/Users/gabri/Documents/GitHub/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/actividades-de-trabajo-en-equipo.png')
-                    print('image', image)
+                    image_path = f'{settings.STATIC_ROOT}/media/templates/actividades-de-trabajo-en-equipo.png'
+                    image = Image.open(image_path)
+                    #image = Image.open('C:/Users/gabri/Documents/GitHub/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/actividades-de-trabajo-en-equipo.png')
+                    
                     new_image = image.resize((300, 99))
                     #html_msg = loader.render_to_string('C:/Users/gabri/OneDrive/Documentos/Repositorios-github/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/sendemail.html', {
-                    html_msg = loader.render_to_string('C:/Users/gabri/Documents/GitHub/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/sendemail.html', {
+                    html_msg = loader.render_to_string('C:/Users/gabriel.carvajal/Documents/GitHub/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/sendemail.html', {
                         "Usuario": " ".join(list(map(lambda x: x.capitalize(), user.username.split(" ")))),
                         "tarea": str(task_day.description),
                         'fecha_inicio': str(task_day.start_day),
                         'fecha_entrega': str(task_day.end_day),
                     })
-                    print('html_msg', html_msg)
+                    
 
                     html_msg = html_msg.replace('%% my_image %%', '{{ my_image }}')
                     email = EmailSender(
@@ -125,8 +126,8 @@ class TaskViewSet(ModelViewSet):
 
             if serializer.is_valid(raise_exception=True):
                 task_finish = serializer.validated_data.get('is_finished')
-                percentage_task = serializer.validated_data.get('percentage_task')
-                if task_finish or percentage_task == 100:
+                porcentage_task = serializer.validated_data.get('porcentage_task')
+                if task_finish == True and porcentage_task == 100:
                     serializer.save()
 
                     user_ids = request.data.get('user', [])
@@ -139,6 +140,7 @@ class TaskViewSet(ModelViewSet):
                             description=task_update.description,
                             is_finished=task_update.is_finished,
                             departament=task_update.departament,
+                            porcentage_task=task_update.porcentage_task,
                             start_day=task_update.start_day,
                             end_day=task_update.end_day,
                         )

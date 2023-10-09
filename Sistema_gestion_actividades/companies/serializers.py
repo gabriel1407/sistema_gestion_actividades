@@ -2,6 +2,7 @@ from django.conf import settings
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from companies.models import Company, Department, Roles
+from users.models import UserCustomer
 #from django.contrib.auth.models import User
 
 User = get_user_model()
@@ -77,7 +78,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
 
     class Meta:
-        model = User
+        model = UserCustomer
         fields = ('__all__')
         #ields = ('__all__')
 
