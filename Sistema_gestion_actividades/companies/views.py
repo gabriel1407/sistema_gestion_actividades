@@ -239,10 +239,13 @@ class UserViewSet(APIView):
 
 class ChangePasswordViewSet(APIView):
     
-    def get(self, request, *args, **kwargs):
-        my_data = UserCustomer.objects.get(username=request.data.get('username'))
-        serializer = UserCustomerListSerializer(my_data)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    def post(self, request, *args, **kwargs):
+        try:
+            my_data = UserCustomer.objects.get(username=request.data.get('username'))
+            serializer = UserCustomerListSerializer(my_data)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except UserCustomer.DoesNotExist:
+            return Response('El usuario no existe', status=status.HTTP_400_BAD_REQUEST)
     
     def put(self, request, *args, **kwargs):
         username = request.GET.get('username')
