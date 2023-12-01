@@ -8,9 +8,11 @@ from companies.models import Roles, Company
 # Create your models here.
 
 class UserManager(BaseUserManager):
-    def create_user(self, username, password, email, first_name=None, last_name=None, is_active=False, rol=None):
+    def create_user(self, username, password, email, first_name=None, last_name=None, ci=None, phone = None, is_active=False, rol=None):
         if not username:
             raise ValueError("El usuario debe tener un nombre de usuario")
+        if not ci:
+            raise ValueError("El usuario debe tener un una cedula de identidad")
         if not password:
             raise ValueError("El usuario debe tener una contraseña")
         if not email:
@@ -23,13 +25,15 @@ class UserManager(BaseUserManager):
             first_name=first_name,
             last_name=last_name,
             is_active=is_active,
+            ci = ci,
+            phone = phone,
             rol=rol
         )
         user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, username, password, email, first_name=None, last_name=None, rol=None):
+    def create_superuser(self, username, password, email, first_name=None, last_name=None, ci = None, phone = None, rol=None):
         user = self.create_user(
             username=username,
             #password=password,
@@ -37,6 +41,8 @@ class UserManager(BaseUserManager):
             first_name=first_name,
             last_name=last_name,
             is_active=True,
+            ci=ci,
+            phone=phone,
             rol=rol
         )
         user.is_superuser = True
@@ -50,9 +56,10 @@ class UserCustomer(AbstractBaseUser):
     email = models.EmailField(unique=True, null=False)
     first_name = models.CharField(max_length=200, null=True)
     last_name = models.CharField(max_length=200, null=True)
+    ci = models.CharField(max_length=255, unique=True, null=True)
+    phone = models.TextField(null=True)
     is_active = models.BooleanField(default=True)
-    rol = models.ForeignKey(Roles, related_name='rol',
-                            on_delete=models.CASCADE, null=True)
+    rol = models.ForeignKey(Roles, related_name='rol',on_delete=models.CASCADE, null=True)
     created = models.DateTimeField(default=timezone.now, editable=False)
     modified = models.DateTimeField(default=timezone.now, editable=False)
 

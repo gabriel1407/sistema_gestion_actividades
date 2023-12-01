@@ -122,13 +122,12 @@ class DepartmentViewSet(ModelViewSet):
     search_fields = ('name',)
 
     def create(self, request, *args, **kwargs):
-        serializer = DepartmentSerializer(Department(), data=request.data)
+        serializer = DepartmentSerializer(data=request.data)
 
         if serializer.is_valid():
-            serializer.save()
-            #audit.set_obj(serializer.instance)
-            #audit.process()
-            return Response(DepartmentListSerializer(instance=serializer.instance).data, status=status.HTTP_200_OK)
+            department = serializer.save()  # Guardar la instancia de Department primero
+            serializer.save(user=request.data.get('user', []))  # Asignar los usuarios relacionados
+            return Response(DepartmentListSerializer(instance=department).data, status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

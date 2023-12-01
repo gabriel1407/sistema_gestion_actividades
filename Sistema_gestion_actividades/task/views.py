@@ -29,8 +29,8 @@ from rest_framework.parsers import JSONParser, FormParser
 from rest_framework.response import Response
 from rest_framework.serializers import Serializer
 from rest_framework.views import APIView
-from task.models import Task, TaskHistory, ChatsTasks
-from task.serializers import TaskListSerializer, TaskSerializer, TaskHistoryListSerializer, GetChatsTaskSerializer
+from task.models import Task, TaskHistory
+from task.serializers import TaskListSerializer, TaskSerializer, TaskHistoryListSerializer
 from task.filters import CreatedBetweenFilter
 from companies.models import Company
 from companies.serializers import UserListSerializer
@@ -64,7 +64,7 @@ class TaskViewSet(ModelViewSet):
                     
                     new_image = image.resize((300, 99))
                     #html_msg = loader.render_to_string('C:/Users/gabri/OneDrive/Documentos/Repositorios-github/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/sendemail.html', {
-                    html_msg = loader.render_to_string('C:/Users/gabriel.carvajal/Documents/GitHub/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/sendemail.html', {
+                    html_msg = loader.render_to_string('/home/proyecto/sistema_gestion_actividades/Sistema_gestion_actividades/task/templates/sendemail.html', {
                         "Usuario": " ".join(list(map(lambda x: x.capitalize(), user.username.split(" ")))),
                         "tarea": str(task_day.description),
                         'fecha_inicio': str(task_day.start_day),
@@ -205,44 +205,3 @@ class ReportTaskFinished(APIView):
         
         return response
     
-class DashboardUserViewSet(APIView):
-    
-    def get_queryset(self):
-        company_id = self.request.query_params.get('company')
-        return Company.objects.filter(company_id=company_id)
-    
-    def get(self, request, pk=None, format=None):
-        now = datetime.now()
-        companies = Company.objects.filter(id = self.request.query_params.get('company'), is_enabled=True)
-        date_list = [(now - timedelta(days=x)).strftime('%Y-%m-%d') for x in range(10)]
-        date_list.reverse()
-        
-        for company in companies:
-            data = {
-                'company': company.id,
-                'task_finished': [],
-                'task_pending': [],
-                'users': [],
-                'graph': []
-            }
-            
-            if data is not None:
-                task = Task.objects.filter(is_enabled=True, departament_id=company.id, start_day=now.strftime("%Y-%m-%d")).order_by('start_day')
-                for tasks in task:
-                    ag_data = {
-                        'id': tasks.id,
-                        'nombre': tasks.name,
-                        'Tareas pendientes': tasks.is_pending,
-                        'Tareas finalizadas': tasks.is_finished,
-                        'Dia de inicio': str(tasks.start_day),
-                        'ejecutivo_username': '',
-                        'ejecutivo_name': ''
-                    }
-                    
-                    #if tasks.user_id is None:
-                    data['task_pending'].append(ag_data)
-                        
-                return Response(data, status=status.HTTP_200_OK)
-            
-
-

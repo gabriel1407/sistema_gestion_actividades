@@ -33,6 +33,7 @@ class CompanyListSerializer(serializers.ModelSerializer):
         
         
 class DepartmentSerializer(serializers.ModelSerializer):
+    user = serializers.PrimaryKeyRelatedField(queryset=UserCustomer.objects.all(), many=True, required=False)
     class Meta:
         model = Department
         fields = ('__all__')

@@ -16,20 +16,8 @@ import datetime
 from datetime import timedelta
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Archivos estáticos
-STATIC_URL = '/static/'
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'staticfiles'),
-]
-# Directorio donde se recopilarán los archivos estáticos para producción
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles_collected')
-# Archivos de medios
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-wr#z6a24d+)*@%ozx9j(=ic&xv_5dazgbit!2xwky0xazwucsb'
@@ -96,6 +84,15 @@ TEMPLATES = [
     },
 ]
 
+# Archivos estáticos
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+MEDIA_DIR = BASE_DIR / 'media'
+MEDIA_ROOT = MEDIA_DIR
+MEDIA_URL = '/media/'
+STATICFILES_DIRS = (
+    os.path.join(BASE_DIR, 'static'),
+)
 WSGI_APPLICATION = 'Sistema_gestion_actividades.wsgi.application'
 
 

@@ -31,8 +31,7 @@ class Department(models.Model):
     company = models.ForeignKey(Company, on_delete=models.PROTECT)
     name = models.CharField(max_length=180, null=False, blank=False)
     is_enabled = models.BooleanField(default=True)
-    #user = models.ForeignKey(User, on_delete=models.PROTECT)
-    user = models.ManyToManyField('users.UserCustomer', null = True)
+    user = models.ManyToManyField('users.UserCustomer', blank=True)
     created = models.DateTimeField(default=timezone.now, editable=False)
     modified = models.DateTimeField(default=timezone.now, editable=False)
 
