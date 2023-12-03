@@ -9,8 +9,21 @@ from django.utils import timezone
 from django.utils.timezone import localtime
 from django.contrib.auth.models import User
 from jsonfield import JSONField
-
+from companies.models import Department
 # Create your models here.
+class project_tasks(models.Model):
+    name = models.CharField(max_length=180, null=False, blank=False)
+    departament = models.ForeignKey(Department, null=False, on_delete=models.PROTECT)
+    owner = models.ForeignKey('users.UserCustomer', null=False, on_delete=models.PROTECT)
+    is_enabled = models.BooleanField(default=True)
+    created = models.DateTimeField(default=timezone.now, editable=False)
+    modified = models.DateTimeField(default=timezone.now, editable=False)
+
+    class Meta:
+        db_table = 'tasks_projects_t'
+        app_label = 'task'
+    
+
 class Task(models.Model):
     name = models.TextField(blank=True, null=False)
     description = models.TextField(blank=True, null=True)
