@@ -79,3 +79,11 @@ class UserCustomerViewSet(ModelViewSet):
         self.perform_destroy(instance)
         message = f"Usuario {username} eliminado"  # Mensaje con la concatenación del nombre de usuario
         return Response({"message": message}, status=status.HTTP_200_OK)
+
+
+class UserOwnerCustomerViewSet(ModelViewSet):
+    #permission_classes = (IsAppAuthenticated, IsAppStaff, IsAuthenticated, IsSuperUser)
+    queryset = UserCustomer.objects.filter(rol_id = 1)
+    serializer_class = UserCustomerListSerializer
+    filter_backends = (DjangoFilterBackend,)
+    filterset_fields = ('id', 'username', 'password', 'email', 'first_name', 'last_name', 'rol', 'is_active',)

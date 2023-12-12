@@ -2,9 +2,9 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from django.utils.timezone import localtime
+#from companies.models import Roles
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
-from companies.models import Roles, Company
 # Create your models here.
 
 class UserManager(BaseUserManager):
@@ -59,7 +59,7 @@ class UserCustomer(AbstractBaseUser):
     ci = models.CharField(max_length=255, unique=True, null=True)
     phone = models.TextField(null=True)
     is_active = models.BooleanField(default=True)
-    rol = models.ForeignKey(Roles, related_name='rol',on_delete=models.CASCADE, null=True)
+    rol = models.ForeignKey('companies.Roles', related_name='rol',on_delete=models.CASCADE, null=True)
     created = models.DateTimeField(default=timezone.now, editable=False)
     modified = models.DateTimeField(default=timezone.now, editable=False)
 

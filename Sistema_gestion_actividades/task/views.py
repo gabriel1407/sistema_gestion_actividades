@@ -29,8 +29,8 @@ from rest_framework.parsers import JSONParser, FormParser
 from rest_framework.response import Response
 from rest_framework.serializers import Serializer
 from rest_framework.views import APIView
-from task.models import Task, TaskHistory
-from task.serializers import TaskListSerializer, TaskSerializer, TaskHistoryListSerializer
+from task.models import Task, TaskHistory, project_tasks
+from task.serializers import TaskListSerializer, TaskSerializer, TaskHistoryListSerializer, project_tasks_serializer, project_tasks_list_serializer
 from task.filters import CreatedBetweenFilter
 from companies.models import Company
 from companies.serializers import UserListSerializer
@@ -43,10 +43,10 @@ User = get_user_model()
 
 class TaskViewSet(ModelViewSet):
     #permission_classes = (IsAppAuthenticated, IsAppStaff, IsAuthenticated, IsSuperUser)
-    queryset = Task.objects.all()
     serializer_class = TaskListSerializer
+    queryset = Task.objects.all()
     filter_backends = (DjangoFilterBackend,)
-    filter_fields = ('is_enabled',)
+    filterset_fields = ('is_enabled', 'user', 'id')
     
 
     def send_email(self, request, id, *args, **kwargs):
@@ -164,22 +164,26 @@ class ReportTaskFinished(APIView):
     def get(self, request, *args, **kwargs):
         # Obtener los objetos de TaskHistory según los filtros
         queryset = TaskHistory.objects.filter(is_enabled=True).order_by('-created')
-        
+
+        # Serializar los datos que deseas devolver como JSON
+        serializer = self.serializer_class(queryset, many=True)
+        data = serializer.data
+
         # Crear un nuevo archivo de Excel
         wb = openpyxl.Workbook()
         sheet = wb.active
         users = UserCustomer.objects.all()
         user_names = ', '.join(user.username for user in users if user.username)
-        
+
         # Crear los encabezados de las columnas
-        headers = ['ID', 'name', 'description', 'is_enabled', 'is_finished', 'is_pending', 'is_started', 'user', 'departament', 'start_day', 'end_day']  # Reemplaza los campos con los correctos
+        headers = ['ID', 'name', 'description', 'is_enabled', 'is_finished', 'is_pending', 'is_started', 'project', 'user', 'departament', 'start_day', 'end_day']  # Reemplaza los campos con los correctos
         for col_num, header_title in enumerate(headers, 1):
             col_letter = get_column_letter(col_num)
             sheet.column_dimensions[col_letter].width = 15
             cell = sheet.cell(row=1, column=col_num)
             cell.value = header_title
             cell.font = Font(bold=True)
-        
+
         # Llenar la información de las filas
         for row_num, obj in enumerate(queryset, 2):
             sheet.cell(row=row_num, column=1).value = obj.id
@@ -189,19 +193,51 @@ class ReportTaskFinished(APIView):
             sheet.cell(row=row_num, column=5).value = obj.is_finished
             sheet.cell(row=row_num, column=6).value = obj.is_pending
             sheet.cell(row=row_num, column=7).value = obj.is_started
-            sheet.cell(row=row_num, column=8).value = user_names
+            sheet.cell(row=row_num, column=8).value = obj.project
+            sheet.cell(row=row_num, column=9).value = user_names
             # Opción alternativa: sheet.cell(row=row_num, column=8).value = obj.user.first().username  # Obtener el primer nombre de usuario
-            sheet.cell(row=row_num, column=9).value = obj.departament.name
-            sheet.cell(row=row_num, column=10).value = obj.start_day
-            sheet.cell(row=row_num, column=11).value = obj.end_day
-        
+            sheet.cell(row=row_num, column=10).value = obj.departament.name
+            sheet.cell(row=row_num, column=11).value = obj.start_day
+            sheet.cell(row=row_num, column=12).value = obj.end_day
+
         # Guardar el archivo de Excel
-        #file_path = os.path.join('/home/pegaso/projects_gabriel/media', 'task_finished.xlsx')
-        #file_path = os.path.join(f'{settings.STATIC_ROOT}/media', 'task_finished.xlsx')
         file_path = os.path.join(f'{settings.STATIC_ROOT}/media', 'task_finished.xlsx')
-        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        response['Content-Disposition'] = 'attachment; filename="{}"'.format(file_path)
         wb.save(file_path)
-        
-        return response
+
+        # Crear la respuesta HTTP con el archivo adjunto y los datos serializados
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="task_finished.xlsx"'
+        with open(file_path, 'rb') as excel_file:
+            response.write(excel_file.read())
+
+        return Response(queryset, status=status.HTTP_200_OK)
+        #return response
     
+
+class project_tasksViewSet(ModelViewSet):
+    #permission_classes = (IsAppAuthenticated, IsAppStaff, IsAuthenticated, IsSuperUser)
+    serializer_class = project_tasks_list_serializer
+    queryset = project_tasks.objects.filter(owner__rol__id=1)
+    filter_backends = (DjangoFilterBackend,)
+    filter_fields = ('id',)
+
+
+    def create(self, request, *args, **kwargs):
+        serialize = project_tasks_serializer(data=request.data)
+
+        if serialize.is_valid():
+            serialize.save()
+            return Response(project_tasks_list_serializer(instance=serialize.instance).data, status=status.HTTP_200_OK)
+        else:
+            return Response(serialize.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+        company = self.get_object()
+        serialize = project_tasks_serializer(company, data=request.data, partial=True)
+
+        if serialize.is_valid():
+            serialize.save()
+
+            return Response(project_tasks_list_serializer(instance=serialize.instance).data, status=status.HTTP_200_OK)
+        else:
+            return Response(serialize.errors, status=status.HTTP_400_BAD_REQUEST)

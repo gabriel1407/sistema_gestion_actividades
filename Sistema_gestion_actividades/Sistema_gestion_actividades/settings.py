@@ -18,7 +18,7 @@ from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
+SESSION_COOKIE_AGE = 12 * 60 * 60  # 12 horas en segundos
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-wr#z6a24d+)*@%ozx9j(=ic&xv_5dazgbit!2xwky0xazwucsb'
 
@@ -27,7 +27,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-#AUTH_USER_MODEL = 'companies.User'
+# settings.py
+AUTH_USER_MODEL = 'users.UserCustomer'
+
 
 # Application definition
 
@@ -53,6 +55,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    #'companies.middleware.SessionTimeoutMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',

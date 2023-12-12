@@ -3,9 +3,17 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from companies.models import Company, Department, Roles
 from users.models import UserCustomer
+#from users.serializers import UserCustomerListSerializer
 #from django.contrib.auth.models import User
 
 User = get_user_model()
+
+class UserCustomerDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserCustomer
+        fields = ('__all__')
+        read_only_fields = ('email', 'username',)
+
 
 class UserSerializer(serializers.ModelSerializer):
     #companies = CompanySerializer(many=True, read_only=True)
@@ -41,6 +49,7 @@ class DepartmentSerializer(serializers.ModelSerializer):
 
 class DepartmentListSerializer(serializers.ModelSerializer):
     company = CompanyListSerializer(many=False, read_only=True)
+    user = UserCustomerDetailSerializer(many=True, read_only=True)
     class Meta:
         model = Department
         fields = ('__all__')
