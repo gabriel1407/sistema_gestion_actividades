@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'task',
     'users',
     'companies',
+    'clinic',
 ]
 
 MIDDLEWARE = [
@@ -113,9 +114,9 @@ WSGI_APPLICATION = 'Sistema_gestion_actividades.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'project_tesis',
-        'USER': 'gabriel',
-        'PASSWORD': 'carvajal1407',
+        'NAME': 'vita_code',
+        'USER': 'vita_user',
+        'PASSWORD': 'v1t@_c0d3',
         'HOST': '127.0.0.1',
         #'HOST': '192.168.1.51',
         'PORT': 3306,
