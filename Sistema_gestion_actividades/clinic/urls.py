@@ -1,9 +1,9 @@
 from django.urls import re_path
 from rest_framework.routers import DefaultRouter
-from clinic.views import PhoneNumberViewSet
+from clinic.views import ClinicViewSet
 
 router = DefaultRouter()
-router.register(r'phone_numbers', PhoneNumberViewSet)
+router.register(r'clinic', ClinicViewSet)
 
 urlpatterns = []
 
