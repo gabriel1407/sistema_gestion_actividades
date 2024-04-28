@@ -8,7 +8,7 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 # Create your models here.
 
 class UserManager(BaseUserManager):
-    def create_user(self, username, password, email, first_name=None, last_name=None, ci=None, phone = None, is_active=False, rol=None):
+    def create_user(self, username, password, email, address, first_name=None, last_name=None, ci=None, phone = None, is_active=False, rol=None):
         if not username:
             raise ValueError("El usuario debe tener un nombre de usuario")
         if not ci:
@@ -26,6 +26,7 @@ class UserManager(BaseUserManager):
             last_name=last_name,
             is_active=is_active,
             ci = ci,
+            address = address,
             phone = phone,
             rol=rol
         )
@@ -33,7 +34,7 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, username, password, email, first_name=None, last_name=None, ci = None, phone = None, rol=None):
+    def create_superuser(self, username, password, email, address, first_name=None, last_name=None, ci = None, phone = None, rol=None):
         user = self.create_user(
             username=username,
             #password=password,
@@ -42,6 +43,7 @@ class UserManager(BaseUserManager):
             last_name=last_name,
             is_active=True,
             ci=ci,
+            address=address,
             phone=phone,
             rol=rol
         )
@@ -58,6 +60,7 @@ class UserCustomer(AbstractBaseUser):
     last_name = models.CharField(max_length=200, null=True)
     ci = models.CharField(max_length=255, unique=True, null=True)
     phone = models.TextField(null=True)
+    address = models.TextField(null=True)
     is_active = models.BooleanField(default=True)
     rol = models.ForeignKey('companies.Roles', related_name='rol',on_delete=models.CASCADE, null=True)
     created = models.DateTimeField(default=timezone.now, editable=False)
@@ -71,3 +74,71 @@ class UserCustomer(AbstractBaseUser):
         app_label = 'users'
 
     objects = UserManager()
+
+class Patients(BaseUserManager):
+    def create_patients(self, username, password, email, address, first_name=None, last_name=None, ci=None, phone = None, is_active=False, rol=None):
+        if not username:
+            raise ValueError("El paciente debe tener un nombre de paciente")
+        if not ci:
+            raise ValueError("El paciente debe tener un una cedula de identidad")
+        if not password:
+            raise ValueError("El paciente debe tener una contraseña")
+        if not email:
+            raise ValueError("El paciente debe tener un email")
+        if PatientsCustomers.objects.filter(email=email).exists():
+            raise ValueError("El email ya está registrado")
+        user = self.model(
+            username=username,
+            #email=self.normalize_email(email),
+            first_name=first_name,
+            last_name=last_name,
+            is_active=is_active,
+            ci = ci,
+            address = address,
+            phone = phone,
+            rol=rol
+        )
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, username, password, email, address, first_name=None, last_name=None, ci = None, phone = None, rol=None):
+        user = self.create_patients(
+            username=username,
+            #password=password,
+            #email=email,
+            first_name=first_name,
+            last_name=last_name,
+            is_active=True,
+            ci=ci,
+            address=address,
+            phone=phone,
+            rol=rol
+        )
+        user.is_superuser = True
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+
+class PatientsCustomers(AbstractBaseUser):
+    username = models.CharField(max_length=255, unique=True, null=True)
+    email = models.EmailField(unique=True, null=False)
+    first_name = models.CharField(max_length=200, null=True)
+    last_name = models.CharField(max_length=200, null=True)
+    ci = models.CharField(max_length=255, unique=True, null=True)
+    phone = models.TextField(null=True)
+    address = models.TextField(null=True)
+    is_active = models.BooleanField(default=True)
+    rol = models.ForeignKey('companies.Roles',on_delete=models.CASCADE, null=True)
+    created = models.DateTimeField(default=timezone.now, editable=False)
+    modified = models.DateTimeField(default=timezone.now, editable=False)
+
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = ['first_name', 'last_name', 'password']
+
+    class Meta:
+        db_table = 'users_patients'
+        app_label = 'users'
+
+    objects = Patients()

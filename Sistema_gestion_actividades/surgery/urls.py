@@ -2,12 +2,10 @@ from django.urls import re_path
 from rest_framework.routers import DefaultRouter
 
 
-from users.views import UserCustomerViewSet, UserOwnerCustomerViewSet, PatientsCustomersViewSet
+from surgery.views import SurgeryViewSet
 
 router = DefaultRouter()
-router.register(r'users', UserCustomerViewSet)
-router.register(r'user_admin', UserOwnerCustomerViewSet)
-router.register(r'patients', PatientsCustomersViewSet)
+router.register(r'surgery', SurgeryViewSet)
 
 urlpatterns = [
     #re_path(r'^task/<int:pk>/', TaskViewSet, name='login'),

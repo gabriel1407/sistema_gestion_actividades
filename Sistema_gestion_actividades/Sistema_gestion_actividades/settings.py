@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'task',
     'users',
     'companies',
+    'surgery',
     'clinic',
 ]
 
