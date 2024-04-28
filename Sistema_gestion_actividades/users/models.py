@@ -64,7 +64,7 @@ class UserCustomer(AbstractBaseUser):
     modified = models.DateTimeField(default=timezone.now, editable=False)
 
     USERNAME_FIELD = 'username'
-    REQUIRED_FIELDS = ['username', 'first_name', 'last_name', 'password']
+    REQUIRED_FIELDS = ['first_name', 'last_name', 'password']
 
     class Meta:
         db_table = 'users_models'
